@@ -11,14 +11,13 @@ See [README.md](./README.md) for project rules and
 ## Essential Commands
 
 ### Backend (`backend/`)
-- Test & build: `mvn clean verify`
+- Test, build & coverage: `mvn clean verify`
 - Run dev server: `mvn spring-boot:run`
-- Test with coverage: `mvn clean verify -Pcoverage`
 
 ### Frontend (`frontend/`)
 - Install dependencies: `npm install`
 - Dev server: `npm run dev` (port 5173)
-- Run tests: `npm run test`
+- Run tests & coverage: `npm run test`
 - Lint & format: `npm run lint` / `npm run format`
 
 ### Video Grabber (`tooling/videoGrabber/`)
@@ -61,6 +60,8 @@ See [README.md](./README.md) for project rules and
 - **DoD:**
     - Code builds without errors.
     - Tests pass locally and in CI.
-    - Required coverage threshold (>50%) is met.
+    - Frontend coverage: at least 75% for branches, functions, lines and statements.
+    - Backend coverage: at least 75% overall for instructions, lines and methods;
+      at least 50% line coverage per class (JaCoCo exclusions apply).
     - Lint checks pass.
     - Automated/Copilot review comments are resolved.
