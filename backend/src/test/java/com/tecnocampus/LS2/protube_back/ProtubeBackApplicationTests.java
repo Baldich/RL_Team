@@ -12,7 +12,7 @@ import static org.junit.Assert.assertNotNull;
         "pro_tube.store.dir=c:",
         "pro_tube.load_initial_data=false"
 })
-class ProtubeBackApplicationTests {
+class ProtubeBackApplicationTests extends PostgresTestSupport {
 
     @Autowired
     VideoService videoService;
