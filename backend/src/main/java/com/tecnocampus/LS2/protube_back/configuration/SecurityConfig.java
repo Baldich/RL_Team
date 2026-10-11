@@ -12,7 +12,6 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -42,15 +41,12 @@ public class SecurityConfig {
                                            CsrfTokenRepository csrfTokens) throws Exception {
         return http
                 .cors(cors -> {})
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokens)
-                        // Existing /logout only renders a legacy view and does not change authentication.
-                        .ignoringRequestMatchers(new AntPathRequestMatcher("/logout", "POST")))
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokens))
                 .securityContext(context -> context.securityContextRepository(contexts))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .requestCache(cache -> cache.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
-                // Keep the existing MVC logout endpoint; US-02 is not implemented here.
                 .logout(logout -> logout.disable())
                 .build();
     }

@@ -2,7 +2,9 @@ package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.dto.RegistrationRequest;
 import com.tecnocampus.LS2.protube_back.dto.RegistrationResponse;
+import com.tecnocampus.LS2.protube_back.dto.LoginRequest;
 import com.tecnocampus.LS2.protube_back.services.RegistrationService;
+import com.tecnocampus.LS2.protube_back.services.LoginService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,14 +24,40 @@ import java.util.List;
 @RequestMapping("/api/auth")
 public class RegistrationController {
     private final RegistrationService registrations;
+    private final LoginService logins;
     private final SecurityContextRepository contexts;
     private final CsrfTokenRepository csrfTokens;
 
-    public RegistrationController(RegistrationService registrations, SecurityContextRepository contexts,
+    public RegistrationController(RegistrationService registrations, LoginService logins, SecurityContextRepository contexts,
                                   CsrfTokenRepository csrfTokens) {
         this.registrations = registrations;
+        this.logins = logins;
         this.contexts = contexts;
         this.csrfTokens = csrfTokens;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<RegistrationResponse> login(@Valid @RequestBody LoginRequest login,
+            HttpServletRequest request, HttpServletResponse response) {
+        RegistrationResponse user = logins.authenticate(login);
+        Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(user, null, List.of());
+        new ChangeSessionIdAuthenticationStrategy().onAuthentication(authentication, request, response);
+        new CsrfAuthenticationStrategy(csrfTokens).onAuthentication(authentication, request, response);
+        var context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        contexts.saveContext(context, request, response);
+        return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        SecurityContextHolder.clearContext();
+        var session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/register")

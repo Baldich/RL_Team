@@ -10,6 +10,7 @@ export interface RegistrationErrors {
   email?: string;
   password?: string;
 }
+export type LoginErrors = RegistrationErrors;
 
 const authUrl = `${getEnv().API_BASE_URL}/auth`;
 
@@ -28,4 +29,26 @@ export async function register(email: string, password: string): Promise<Registe
     { withCredentials: true, headers: { [csrf.data.headerName]: csrf.data.token } }
   );
   return response.data;
+}
+
+export async function login(email: string, password: string): Promise<RegisteredUser> {
+  const csrf = await axios.get<{ headerName: string; token: string }>(`${authUrl}/csrf`, {
+    withCredentials: true,
+  });
+  const response = await axios.post<RegisteredUser>(
+    `${authUrl}/login`,
+    { email: email.trim().toLowerCase(), password },
+    { withCredentials: true, headers: { [csrf.data.headerName]: csrf.data.token } }
+  );
+  return response.data;
+}
+
+export async function logout(): Promise<void> {
+  const csrf = await axios.get<{ headerName: string; token: string }>(`${authUrl}/csrf`, {
+    withCredentials: true,
+  });
+  await axios.post(`${authUrl}/logout`, undefined, {
+    withCredentials: true,
+    headers: { [csrf.data.headerName]: csrf.data.token },
+  });
 }

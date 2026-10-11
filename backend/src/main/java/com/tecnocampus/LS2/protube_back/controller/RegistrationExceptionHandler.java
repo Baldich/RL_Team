@@ -2,6 +2,7 @@ package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.dto.ApiError;
 import com.tecnocampus.LS2.protube_back.services.DuplicateEmailException;
+import com.tecnocampus.LS2.protube_back.services.InvalidCredentialsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,5 +23,10 @@ public class RegistrationExceptionHandler {
         exception.getBindingResult().getFieldErrors().forEach(error ->
                 errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.badRequest().body(new ApiError("Check the registration fields.", errors));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    ResponseEntity<ApiError> invalidCredentials(InvalidCredentialsException exception) {
+        return ResponseEntity.status(401).body(new ApiError(exception.getMessage(), Map.of()));
     }
 }
