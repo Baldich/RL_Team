@@ -5,6 +5,7 @@ import { getSession, logout } from './auth';
 import type { RegisteredUser } from './auth';
 import RegistrationForm from './components/RegistrationForm';
 import LoginForm from './components/LoginForm';
+import VideoGrid from './components/VideoGrid';
 
 function App() {
   const [user, setUser] = useState<RegisteredUser | null>(null);
@@ -43,12 +44,30 @@ function App() {
         {user ? (
           <>
             <p role="status">Signed in as {user.email}</p>
-            <button type="button" onClick={() => logout().then(() => setUser(null))}>Log out</button>
+            <button type="button" onClick={() => logout().then(() => setUser(null))}>
+              Log out
+            </button>
           </>
         ) : (
           <>
-            <a href="/login" onClick={(event) => { event.preventDefault(); navigate('/login'); }}>Log in</a>
-            <a href="/register" onClick={(event) => { event.preventDefault(); navigate('/register'); }}>Register</a>
+            <a
+              href="/login"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate('/login');
+              }}
+            >
+              Log in
+            </a>
+            <a
+              href="/register"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate('/register');
+              }}
+            >
+              Register
+            </a>
           </>
         )}
         {sessionLoading ? (
@@ -61,7 +80,12 @@ function App() {
             }}
           />
         ) : path === '/login' ? (
-          <LoginForm onLoggedIn={(loggedIn) => { setUser(loggedIn); navigate('/'); }} />
+          <LoginForm
+            onLoggedIn={(loggedIn) => {
+              setUser(loggedIn);
+              navigate('/');
+            }}
+          />
         ) : (
           <ContentApp />
         )}
@@ -71,29 +95,44 @@ function App() {
 }
 
 function ContentApp() {
-  const { loading, message, value } = useAllVideos();
-  switch (loading) {
-    case 'loading':
-      return <div>Loading...</div>;
-    case 'error':
-      return (
-        <div>
-          <h3>Error</h3> <p>{message}</p>
+  const [page, setPage] = useState(0);
+  const { loading, message, value, retry } = useAllVideos(page);
+  const pending = loading === 'loading' || loading === 'idle';
+  return (
+    <section className="catalog" aria-labelledby="catalog-title">
+      <h1 id="catalog-title">Available videos</h1>
+      {pending ? (
+        <p role="status">Loading...</p>
+      ) : loading === 'error' ? (
+        <div role="alert">
+          <h2>Error</h2>
+          <p>{message}</p>
+          <button type="button" onClick={retry}>
+            Retry
+          </button>
         </div>
-      );
-    case 'success':
-      return (
-        <>
-          <strong>Videos availables:</strong>
-          <ul>
-            {value.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </>
-      );
-  }
-  return <div>Idle...</div>;
+      ) : value && value.content.length > 0 ? (
+        <VideoGrid videos={value.content} />
+      ) : (
+        <p>No videos available.</p>
+      )}
+      <nav aria-label="Video pagination">
+        <button type="button" disabled={pending || page === 0} onClick={() => setPage((current) => current - 1)}>
+          Previous
+        </button>
+        <span>
+          Page {page + 1} of {Math.max(1, value?.totalPages ?? 0)}
+        </span>
+        <button
+          type="button"
+          disabled={pending || loading === 'error' || !value || page + 1 >= value.totalPages}
+          onClick={() => setPage((current) => current + 1)}
+        >
+          Next
+        </button>
+      </nav>
+    </section>
+  );
 }
 
 export default App;

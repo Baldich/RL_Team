@@ -36,16 +36,20 @@ describe('registration API', () => {
     mockAxios.get.mockResolvedValue({ data: { headerName: 'X-CSRF-TOKEN', token: 'csrf' } });
     mockAxios.post.mockResolvedValue({ data: { id: 1, email: 'visitor@example.com' } });
     await expect(login(' Visitor@EXAMPLE.com ', '12345678')).resolves.toEqual({ id: 1, email: 'visitor@example.com' });
-    expect(mockAxios.post).toHaveBeenCalledWith('other/auth/login',
+    expect(mockAxios.post).toHaveBeenCalledWith(
+      'other/auth/login',
       { email: 'visitor@example.com', password: '12345678' },
-      { withCredentials: true, headers: { 'X-CSRF-TOKEN': 'csrf' } });
+      { withCredentials: true, headers: { 'X-CSRF-TOKEN': 'csrf' } }
+    );
   });
 
   it('logs out with CSRF protection and credentials', async () => {
     mockAxios.get.mockResolvedValue({ data: { headerName: 'X-CSRF-TOKEN', token: 'csrf' } });
     mockAxios.post.mockResolvedValue({});
     await logout();
-    expect(mockAxios.post).toHaveBeenCalledWith('other/auth/logout', undefined,
-      { withCredentials: true, headers: { 'X-CSRF-TOKEN': 'csrf' } });
+    expect(mockAxios.post).toHaveBeenCalledWith('other/auth/logout', undefined, {
+      withCredentials: true,
+      headers: { 'X-CSRF-TOKEN': 'csrf' },
+    });
   });
 });
