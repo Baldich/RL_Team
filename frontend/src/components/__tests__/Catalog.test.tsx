@@ -32,7 +32,7 @@ describe('Catalog', () => {
 
   it('lets a visitor browse forward and back with correct boundaries', async () => {
     render(<App />);
-    await screen.findByRole('heading', { name: 'First' });
+    await screen.findByRole('link', { name: 'First' });
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByRole('heading', { name: 'Next video' })).toBeInTheDocument();
@@ -77,10 +77,10 @@ describe('Catalog', () => {
     session.mockResolvedValue({ id: 1, email: 'user@example.com' });
     jest.mocked(logout).mockResolvedValue();
     render(<App />);
-    await screen.findByRole('heading', { name: 'First' });
+    await screen.findByRole('link', { name: 'First' });
     fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
     await screen.findByRole('link', { name: 'Log in' });
-    expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'First' })).toBeInTheDocument();
   });
 
   it('returns to the real catalog after login', async () => {
@@ -91,7 +91,7 @@ describe('Catalog', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'user@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: '12345678' } });
     fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
-    expect(await screen.findByRole('heading', { name: 'First' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'First' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/');
   });
 });

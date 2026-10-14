@@ -44,4 +44,23 @@ class VideosControllerTest {
         }
         verifyNoInteractions(videos);
     }
+
+    @Test
+    void returnsVideoDetails() throws Exception {
+        when(videos.getVideoDetails(1L)).thenReturn(new VideoDetailResponse(1L, "Title", "Description", "1.mp4", "1.webp",
+                List.of(new VideoCommentResponse("viewer", "Nice!", 123L, 4))));
+        mvc.perform(get("/api/videos/1")).andExpect(status().isOk())
+                .andExpect(jsonPath("id").value(1))
+                .andExpect(jsonPath("title").value("Title"))
+                .andExpect(jsonPath("description").value("Description"))
+                .andExpect(jsonPath("videoPath").value("1.mp4"))
+                .andExpect(jsonPath("thumbnailPath").value("1.webp"))
+                .andExpect(jsonPath("comments[0].author").value("viewer"));
+    }
+
+    @Test
+    void returnsNotFoundWhenVideoUnavailable() throws Exception {
+        when(videos.getVideoDetails(99L)).thenThrow(new com.tecnocampus.LS2.protube_back.services.VideoNotFoundException(99L));
+        mvc.perform(get("/api/videos/99")).andExpect(status().isNotFound());
+    }
 }
