@@ -47,15 +47,35 @@ export default function LoginForm({ onLoggedIn }: Props) {
       <h1>Log in</h1>
       {message && <p role="alert">{message}</p>}
       <div className="mb-3">
-        <label className="form-label" htmlFor="login-email">Email</label>
-        <input id="login-email" className="form-control" type="email" autoComplete="email" value={email}
-          onChange={(event) => setEmail(event.target.value)} required aria-invalid={Boolean(errors.email)} />
+        <label className="form-label" htmlFor="login-email">
+          Email
+        </label>
+        <input
+          id="login-email"
+          className="form-control"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          aria-invalid={Boolean(errors.email)}
+        />
         {errors.email && <p role="alert">{errors.email}</p>}
       </div>
       <div className="mb-3">
-        <label className="form-label" htmlFor="login-password">Password</label>
-        <input id="login-password" className="form-control" type="password" autoComplete="current-password"
-          value={password} onChange={(event) => setPassword(event.target.value)} required aria-invalid={Boolean(errors.password)} />
+        <label className="form-label" htmlFor="login-password">
+          Password
+        </label>
+        <input
+          id="login-password"
+          className="form-control"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          aria-invalid={Boolean(errors.password)}
+        />
         {errors.password && <p role="alert">{errors.password}</p>}
       </div>
       <button className="btn btn-primary" type="submit" disabled={pending}>

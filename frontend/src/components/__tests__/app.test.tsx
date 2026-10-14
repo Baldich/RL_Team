@@ -15,7 +15,18 @@ describe('App', () => {
     jest.resetAllMocks();
     window.history.replaceState({}, '', '/');
     mockSession.mockResolvedValue(null);
-    mockVideos.mockReturnValue({ loading: 'success', message: '', value: ['video1'] });
+    mockVideos.mockReturnValue({
+      loading: 'success',
+      message: '',
+      value: {
+        content: [{ id: 1, title: 'video1', thumbnailPath: '0.webp' }],
+        page: 0,
+        size: 12,
+        totalElements: 1,
+        totalPages: 1,
+      },
+      retry: jest.fn(),
+    });
   });
 
   it('registers, updates authenticated state and navigates home', async () => {
@@ -58,10 +69,10 @@ describe('App', () => {
   });
 
   it.each(['loading', 'error', 'idle'] as const)('preserves the %s catalog state', async (loading) => {
-    mockVideos.mockReturnValue({ loading, message: 'Catalog error', value: [] });
+    mockVideos.mockReturnValue({ loading, message: 'Catalog error', value: null, retry: jest.fn() });
     render(<App />);
     await waitFor(() => expect(screen.queryByText('Checking session...')).not.toBeInTheDocument());
     if (loading === 'error') expect(screen.getByRole('heading', { name: 'Error' })).toBeInTheDocument();
-    else expect(screen.getByText(loading === 'loading' ? 'Loading...' : 'Idle...')).toBeInTheDocument();
+    else expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 });

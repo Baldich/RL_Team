@@ -30,3 +30,42 @@
     transform: rotate(360deg);
   }
 }
+
+.catalog {
+  width: min(1200px, 100%);
+  padding: 1rem;
+  font-size: 1rem;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
+.video-card {
+  min-width: 0;
+  text-align: left;
+}
+
+.video-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.video-card h2 {
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.catalog nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}

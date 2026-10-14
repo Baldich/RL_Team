@@ -1,31 +1,41 @@
 import { useEffect, useState } from 'react';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { getEnv } from './utils/Env';
+import type { VideoPage } from './types/video';
 
-type LoadingState = 'loading' | 'success' | 'error' | 'idle';
-
-const ALL_VIDEOS_URL = `${getEnv().API_BASE_URL}/videos`;
-export function useAllVideos() {
-  const [value, setValue] = useState<string[]>([]);
-  const [message, setMessage] = useState<string>('Loading...');
-  const [loading, setLoading] = useState<LoadingState>('idle');
+export function useAllVideos(page = 0) {
+  const [value, setValue] = useState<VideoPage | null>(null);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState<'loading' | 'success' | 'error' | 'idle'>('loading');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    const getVideos = async () => {
-      try {
-        setLoading('loading');
-        const response = await axios.get<string[]>(ALL_VIDEOS_URL);
-        if (response.status === 200) {
+    let active = true;
+    const controller = new AbortController();
+    setLoading('loading');
+    setMessage('');
+    axios
+      .get<VideoPage>(getEnv().API_BASE_URL + '/videos', {
+        params: { page, size: 12 },
+        signal: controller.signal,
+      })
+      .then((response) => {
+        if (active) {
           setValue(response.data);
+          setLoading('success');
         }
-        setLoading('success');
-      } catch (error: unknown) {
-        setLoading('error');
-        setMessage('Error fetching videos: ' + (error as AxiosError).message);
-      }
+      })
+      .catch(() => {
+        if (active) {
+          setMessage('Unable to load videos. Please try again.');
+          setLoading('error');
+        }
+      });
+    return () => {
+      active = false;
+      controller.abort();
     };
-    getVideos().then();
-  }, []);
+  }, [page, attempt]);
 
-  return { value, message, loading };
+  return { value, message, loading, retry: () => setAttempt((current) => current + 1) };
 }
