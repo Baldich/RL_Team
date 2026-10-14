@@ -65,3 +65,13 @@ See [README.md](./README.md) for project rules and
       at least 50% line coverage per class (JaCoCo exclusions apply).
     - Lint checks pass.
     - Automated/Copilot review comments are resolved.
+
+## AI Prompt Traceability (NFR-07)
+Whenever code, tests, or configuration are generated or modified to implement a User Story or Task:
+1. Automatically create or update the corresponding prompt file under the `/prompts/` directory.
+2. File naming convention: `prompts/<story-or-task-id>-<short-description>.prompt.md` (e.g., `prompts/us-02-user-login.prompt.md`).
+3. The prompt file must document:
+  - Target User Story / Task ID and description.
+  - Architectural and security constraints applied (e.g., NFR-01 PostgreSQL, Spring Security).
+  - Expected acceptance criteria and validation tests.
+4. Always ensure the generated prompt file is committed alongside the code changes in the corresponding feature branch.
