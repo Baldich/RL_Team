@@ -1,6 +1,7 @@
 package com.tecnocampus.LS2.protube_back.controller;
 
 import com.tecnocampus.LS2.protube_back.dto.VideoPageResponse;
+import com.tecnocampus.LS2.protube_back.dto.VideoDetailResponse;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -19,5 +20,10 @@ public class VideosController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page must be nonnegative and size between 1 and 100.");
         }
         return videos.getVideos(page, size);
+    }
+
+    @GetMapping("/{id}")
+    public VideoDetailResponse getVideo(@PathVariable long id) {
+        return videos.getVideoDetails(id);
     }
 }

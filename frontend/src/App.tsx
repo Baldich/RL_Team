@@ -6,6 +6,7 @@ import type { RegisteredUser } from './auth';
 import RegistrationForm from './components/RegistrationForm';
 import LoginForm from './components/LoginForm';
 import VideoGrid from './components/VideoGrid';
+import VideoDetailPage from './components/VideoDetailPage';
 
 function App() {
   const [user, setUser] = useState<RegisteredUser | null>(null);
@@ -36,6 +37,12 @@ function App() {
     window.history.pushState({}, '', nextPath);
     setPath(nextPath);
   }
+
+  const detailMatch = path.match(/^\/videos\/([^/]+)$/);
+  const detailId = detailMatch ? Number(detailMatch[1]) : null;
+  const detailPath = detailMatch ? detailMatch[1] : null;
+  const isDetailRoute = detailPath !== null;
+  const validDetailId = detailId !== null && Number.isInteger(detailId) && detailId > 0 ? detailId : null;
 
   return (
     <div className="App">
@@ -86,15 +93,25 @@ function App() {
               navigate('/');
             }}
           />
+        ) : isDetailRoute && validDetailId ? (
+          <VideoDetailPage videoId={validDetailId} onBack={() => navigate('/')} />
+        ) : isDetailRoute ? (
+          <section role="alert" aria-labelledby="video-not-found-title">
+            <h1 id="video-not-found-title">Video not found</h1>
+            <p>The video you requested is not available.</p>
+            <button type="button" onClick={() => navigate('/')}>
+              Back to catalog
+            </button>
+          </section>
         ) : (
-          <ContentApp />
+          <ContentApp onOpenVideo={(videoId) => navigate(`/videos/${videoId}`)} />
         )}
       </header>
     </div>
   );
 }
 
-function ContentApp() {
+function ContentApp({ onOpenVideo }: { onOpenVideo: (videoId: number) => void }) {
   const [page, setPage] = useState(0);
   const { loading, message, value, retry } = useAllVideos(page);
   const pending = loading === 'loading' || loading === 'idle';
@@ -112,7 +129,7 @@ function ContentApp() {
           </button>
         </div>
       ) : value && value.content.length > 0 ? (
-        <VideoGrid videos={value.content} />
+        <VideoGrid videos={value.content} onOpenVideo={onOpenVideo} />
       ) : (
         <p>No videos available.</p>
       )}

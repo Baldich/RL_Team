@@ -2,13 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from '../../App';
 import { getSession, register } from '../../auth';
 import { useAllVideos } from '../../useAllVideos';
+import { useVideoDetails } from '../../useVideoDetails';
 
 jest.mock('../../auth');
 jest.mock('../../useAllVideos');
+jest.mock('../../useVideoDetails');
 jest.mock('../../App.css', () => ({}));
 const mockSession = jest.mocked(getSession);
 const mockRegister = jest.mocked(register);
 const mockVideos = jest.mocked(useAllVideos);
+const mockVideoDetails = jest.mocked(useVideoDetails);
 
 describe('App', () => {
   beforeEach(() => {
@@ -25,6 +28,12 @@ describe('App', () => {
         totalElements: 1,
         totalPages: 1,
       },
+      retry: jest.fn(),
+    });
+    mockVideoDetails.mockReturnValue({
+      status: 'idle',
+      message: '',
+      value: null,
       retry: jest.fn(),
     });
   });
@@ -59,6 +68,41 @@ describe('App', () => {
     window.history.replaceState({}, '', '/');
     fireEvent.popState(window);
     expect(screen.getByRole('list')).toBeInTheDocument();
+  });
+
+  it('opens a video detail page from the catalog and shows the player data', async () => {
+    mockVideoDetails.mockReturnValue({
+      status: 'success',
+      message: '',
+      value: {
+        id: 1,
+        title: 'video1',
+        description: 'A sample video',
+        videoPath: '0.mp4',
+        thumbnailPath: '0.webp',
+        comments: [{ author: 'viewer', text: 'Nice!', timestamp: 123, likeCount: 2 }],
+      },
+      retry: jest.fn(),
+    });
+    render(<App />);
+    await screen.findByRole('link', { name: 'video1' });
+    fireEvent.click(screen.getByRole('link', { name: 'video1' }));
+    expect(await screen.findByRole('heading', { name: 'video1' })).toBeInTheDocument();
+    expect(screen.getByText('A sample video')).toBeInTheDocument();
+    expect(screen.getByText('Nice!')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/videos/1');
+  });
+
+  it('shows a not-found state for an unavailable video route', async () => {
+    window.history.replaceState({}, '', '/videos/999');
+    mockVideoDetails.mockReturnValue({
+      status: 'not-found',
+      message: 'Video not found.',
+      value: null,
+      retry: jest.fn(),
+    });
+    render(<App />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Video not found');
   });
 
   it('keeps registration available if the session lookup fails', async () => {
