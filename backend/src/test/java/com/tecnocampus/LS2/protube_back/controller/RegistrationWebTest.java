@@ -5,6 +5,7 @@ import com.tecnocampus.LS2.protube_back.dto.RegistrationRequest;
 import com.tecnocampus.LS2.protube_back.dto.RegistrationResponse;
 import com.tecnocampus.LS2.protube_back.services.DuplicateEmailException;
 import com.tecnocampus.LS2.protube_back.services.RegistrationService;
+import com.tecnocampus.LS2.protube_back.services.LoginService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RegistrationWebTest {
     @Autowired MockMvc mvc;
     @MockBean RegistrationService registrations;
+    @MockBean LoginService logins;
 
     @Test
     void registrationAuthenticatesSessionAndReturnsOnlySafeFields() throws Exception {
@@ -108,5 +110,37 @@ class RegistrationWebTest {
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
         mvc.perform(options("/api/auth/register").header("Origin", "http://untrusted.example")
                 .header("Access-Control-Request-Method", "POST")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void loginAuthenticatesAndReturnsSafeUser() throws Exception {
+        when(logins.authenticate(any())).thenReturn(new RegistrationResponse(1L, "visitor@example.com"));
+        mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json")
+                        .content("{\"email\":\"visitor@example.com\",\"password\":\"12345678\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"id\":1,\"email\":\"visitor@example.com\"}", true));
+        verify(logins).authenticate(argThat(request -> "visitor@example.com".equals(request.getEmail())));
+    }
+
+    @Test
+    void invalidLoginReturnsUnauthorizedWithoutSession() throws Exception {
+        when(logins.authenticate(any())).thenThrow(new com.tecnocampus.LS2.protube_back.services.InvalidCredentialsException());
+        var result = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json")
+                        .content("{\"email\":\"visitor@example.com\",\"password\":\"wrong\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("message").value("Invalid email or password."))
+                .andReturn();
+        assertNull(result.getRequest().getSession(false));
+    }
+
+    @Test
+    void logoutInvalidatesSessionAndRequiresCsrf() throws Exception {
+        when(logins.authenticate(any())).thenReturn(new RegistrationResponse(1L, "visitor@example.com"));
+        var login = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json")
+                        .content("{\"email\":\"visitor@example.com\",\"password\":\"12345678\"}")).andReturn();
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        mvc.perform(post("/api/auth/logout").session(session)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/auth/logout").with(csrf()).session(session)).andExpect(status().isNoContent());
+        assertTrue(session.isInvalid());
     }
 }

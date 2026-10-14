@@ -1,9 +1,10 @@
 import './App.css';
 import { useAllVideos } from './useAllVideos';
 import { useEffect, useState } from 'react';
-import { getSession } from './auth';
+import { getSession, logout } from './auth';
 import type { RegisteredUser } from './auth';
 import RegistrationForm from './components/RegistrationForm';
+import LoginForm from './components/LoginForm';
 
 function App() {
   const [user, setUser] = useState<RegisteredUser | null>(null);
@@ -40,17 +41,15 @@ function App() {
       <header className="App-header">
         <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="logo" />
         {user ? (
-          <p role="status">Signed in as {user.email}</p>
+          <>
+            <p role="status">Signed in as {user.email}</p>
+            <button type="button" onClick={() => logout().then(() => setUser(null))}>Log out</button>
+          </>
         ) : (
-          <a
-            href="/register"
-            onClick={(event) => {
-              event.preventDefault();
-              navigate('/register');
-            }}
-          >
-            Register
-          </a>
+          <>
+            <a href="/login" onClick={(event) => { event.preventDefault(); navigate('/login'); }}>Log in</a>
+            <a href="/register" onClick={(event) => { event.preventDefault(); navigate('/register'); }}>Register</a>
+          </>
         )}
         {sessionLoading ? (
           <p role="status">Checking session...</p>
@@ -61,6 +60,8 @@ function App() {
               navigate('/');
             }}
           />
+        ) : path === '/login' ? (
+          <LoginForm onLoggedIn={(loggedIn) => { setUser(loggedIn); navigate('/'); }} />
         ) : (
           <ContentApp />
         )}
