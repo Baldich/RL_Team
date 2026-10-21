@@ -69,3 +69,33 @@
   align-items: center;
   gap: 1rem;
 }
+
+.profile-page {
+  width: min(640px, 100%);
+  padding: 1.5rem;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.profile-avatar {
+  display: inline-flex;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar--placeholder {
+  background: #49566b;
+  font-size: 3rem;
+}
+
+.profile-description {
+  white-space: pre-wrap;
+}
+
+.profile-page form {
+  text-align: left;
+}
