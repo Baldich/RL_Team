@@ -1,19 +1,21 @@
-import { act, render } from '@testing-library/react';
-import '@testing-library/jest-dom';
-
+import { render, screen } from '@testing-library/react';
 import VideoGrid from '../VideoGrid';
-import fetchMock from 'jest-fetch-mock';
 
-describe('this component', () => {
-  beforeEach(() => {
-    fetchMock.resetMocks(); // Reset mocks before each test
-  });
-
-  it('renders correctly', async () => {
-    fetchMock.mockResponseOnce(JSON.stringify(['video 1 test', 'video 2 test']));
-    const asFragment = await act(async () => {
-      return render(<VideoGrid />).asFragment;
-    });
-    expect(asFragment()).toMatchSnapshot();
+describe('VideoGrid', () => {
+  it('renders real titles and configured thumbnail URLs', () => {
+    render(
+      <VideoGrid
+        videos={[
+          { id: 1, title: 'First video', thumbnailPath: '0.webp' },
+          { id: 2, title: 'Second video', thumbnailPath: '1.webp' },
+        ]}
+        onOpenVideo={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('list', { name: 'Videos' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'First video' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'First video' })).toHaveAttribute('src', 'development/0.webp');
+    expect(screen.getByRole('img', { name: 'Second video' })).toHaveAttribute('src', 'development/1.webp');
   });
 });

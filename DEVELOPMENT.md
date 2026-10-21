@@ -45,9 +45,9 @@ python3 main.py --store=/absolute/path/to/videos --id=10 --videos=../../resource
 | `ENV_PROTUBE_STORE_DIR`            | always                  | Absolute path of the video store folder. **End it with a path separator** (`/` or `\`) — it is used as a `file:` prefix to serve `/media/**`. |
 | `ENV_PROTUBE_GOOGLE_CLIENT_ID`     | Google OAuth login      | Google OAuth client id                                                                           |
 | `ENV_PROTUBE_GOOGLE_CLIENT_SECRET` | Google OAuth login      | Google OAuth client secret                                                                       |
-| `ENV_PROTUBE_DB_USER`              | `prod` profile          | Database user (use `sa` with the default H2 datasource)                                          |
-| `ENV_PROTUBE_DB_PWD`               | `prod` profile          | Database password (empty with the default H2 datasource)                                         |
-| `ENV_PROTUBE_DB`                   | `prod` + PostgreSQL     | PostgreSQL database name (see [Using PostgreSQL](#using-postgresql))                              |
+| `ENV_PROTUBE_DB_USER` | PostgreSQL | Database user (default postgres); set explicitly for Compose. |
+| `ENV_PROTUBE_DB_PASS` | PostgreSQL | Database password; set explicitly for Compose. |
+| `ENV_PROTUBE_DB` | PostgreSQL | Database name (default protube). |
 
 Never commit real secrets. Set them in your shell, your OS, or your (local, uncommitted) IDE run configuration.
 
@@ -77,11 +77,11 @@ mvn spring-boot:run
 ```
 
 * Starts on **http://localhost:8080** with the `dev` profile (active by default through the Maven `dev` profile).
-* `dev` uses an in-memory H2 database and loads initial data (`pro_tube.load_initial_data=true`). All data is lost
-  on restart.
+* `dev` uses PostgreSQL and imports complete videoGrabber file sets at startup (`pro_tube.load_initial_data=true`).
+  Catalog metadata remains available after restart; repeated imports skip existing source IDs.
 * From IntelliJ you can instead use the shared **ProtubeBackApplication** run configuration (`.run/`) — edit its
   environment variables to point to your own store folder.
-* CORS is open for `/api/**` and `/auth/**`, so the Vite dev server can call the API directly.
+* API CORS allows the configured frontend origin (`ENV_PROTUBE_FRONTEND_ORIGIN`, default http://localhost:5173).
 
 ### Frontend
 
@@ -124,7 +124,7 @@ npm run lint-fix                          # ESLint with autofix
 npm run format                            # Prettier
 ```
 
-The MVP requires **more than 50% coverage** on both apps.
+The current gates require frontend coverage of at least 75% for branches, functions, lines and statements; backend coverage of at least 75% overall instructions, lines and methods, and 50% lines per class (existing exclusions apply).
 
 ### CI
 
@@ -166,20 +166,14 @@ java -jar target/protube-back-0.0.1-SNAPSHOT.jar
 ```
 
 (IntelliJ: the **Create jar** run configuration runs `package` with the `prod` profile.) Remember that
-`ENV_PROTUBE_STORE_DIR`, `ENV_PROTUBE_DB_USER` and `ENV_PROTUBE_DB_PWD` must be set in the environment where the jar
+`ENV_PROTUBE_STORE_DIR`, `ENV_PROTUBE_DB_USER` and `ENV_PROTUBE_DB_PASS` must be set in the environment where the jar
 runs.
 
 To only preview the production frontend bundle, without the backend: `cd frontend && npm run build:prod && npm run preview`.
 
 ### Using PostgreSQL
 
-The `prod` profile still points to an in-memory H2 database, which is only a placeholder — the MVP requires a real
-database (NFR-01 in [REQUIREMENT.md](./REQUIREMENT.md)). The PostgreSQL driver is already a dependency. To switch:
-
-1. Start a PostgreSQL server (e.g. `docker run -d --name protube-db -p 5432:5432 -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=protube postgres:16`).
-2. In `backend/src/main/resources/application.properties`, in the `prod` section, uncomment the PostgreSQL
-   `spring.datasource.url` line and remove the H2 one.
-3. Set `ENV_PROTUBE_DB` (e.g. `protube`), `ENV_PROTUBE_DB_USER` (e.g. `postgres`) and `ENV_PROTUBE_DB_PWD`.
+Both profiles already use PostgreSQL. Start the database using the existing compose.yaml with ENV_PROTUBE_DB, ENV_PROTUBE_DB_USER and ENV_PROTUBE_DB_PASS set. Backend configuration uses ENV_PROTUBE_DB_HOST (default localhost) and the same database variables. No application.properties changes are required.
 
 ## 6. Workflow reminders
 
@@ -200,3 +194,20 @@ database (NFR-01 in [REQUIREMENT.md](./REQUIREMENT.md)). The PostgreSQL driver i
 * **Frontend can't reach the API in dev**: make sure the backend is running on port 8080, or adjust
   `VITE_API_DOMAIN` in `.env.development.local`.
 * **Port already in use**: change `server.port` (backend) or run `npm run dev -- --port 5174` (frontend).
+
+## US-04 catalog import and manual checks
+
+Both development and production use the existing PostgreSQL configuration. Set ENV_PROTUBE_DB_HOST (default localhost), ENV_PROTUBE_DB (default protube), ENV_PROTUBE_DB_USER and ENV_PROTUBE_DB_PASS to match your database.
+
+1. Start PostgreSQL (the existing compose.yaml provides the database; set its environment variables first).
+2. Point ENV_PROTUBE_STORE_DIR to the absolute existing videoGrabber store, including its trailing / or backslash. Each video needs matching <id>.json, <id>.webp and <id>.mp4 files. JSON must have a nonnegative integer id matching its filename and a nonblank title. Source ID zero is supported.
+3. From backend/, run mvn spring-boot:run. The default dev profile imports metadata once at startup into PostgreSQL; images and video files stay in the configured directory. Invalid/incomplete entries are skipped with a warning. Missing directories do not prevent startup. Import never deletes existing rows or updates already imported IDs.
+4. For a production initial import, explicitly set PRO_TUBE_LOAD_INITIAL_DATA=true for that startup; remove it afterward. Production disables initial import by default. Keep the same media store available after import.
+5. From frontend/, run npm run dev (npm.cmd on Windows when PowerShell blocks npm.ps1) and visit http://localhost:5173/. Confirm titles and thumbnails without signing in. With more than 12 valid imported videos, use Next and Previous and verify different entries and page boundaries.
+6. Register or log in, verify the catalog after returning home, then log out and verify browsing still works. Restart the backend and confirm imported entries remain without duplicates. Stop the backend to check the error/Retry state; an empty database with import disabled shows the empty state.
+
+GET /api/videos?page=0&size=12 returns content summaries (id, title, thumbnailPath) and page, size, totalElements, totalPages. Pages are zero-based, ordered by database ID; size is bounded to 1–100. Relative thumbnail paths resolve under /media/ through the existing Env.ts media domain.
+
+Validation: backend mvn clean verify (Java 21; Docker required for PostgreSQL Testcontainers); frontend npm.cmd run test -- --watchAll=false --ci, npm.cmd run lint, npm.cmd run build. Reports: backend/target/site/jacoco/index.html and frontend/coverage/index.html.
+
+Source IDs identify an existing grabber dataset. Regenerating a different dataset with reused numeric IDs requires an explicit data-management decision; the importer deliberately does not overwrite records. Removing media files after import leaves their metadata in the catalog. Playback, uploads and search remain separate stories.
