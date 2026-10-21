@@ -7,6 +7,7 @@ import RegistrationForm from './components/RegistrationForm';
 import LoginForm from './components/LoginForm';
 import VideoGrid from './components/VideoGrid';
 import VideoDetailPage from './components/VideoDetailPage';
+import ProfilePage from './components/ProfilePage';
 
 function App() {
   const [user, setUser] = useState<RegisteredUser | null>(null);
@@ -43,6 +44,9 @@ function App() {
   const detailPath = detailMatch ? detailMatch[1] : null;
   const isDetailRoute = detailPath !== null;
   const validDetailId = detailId !== null && Number.isInteger(detailId) && detailId > 0 ? detailId : null;
+  const profileMatch = path.match(/^\/users\/([1-9]\d*)$/);
+  const publicProfileId = profileMatch ? Number(profileMatch[1]) : null;
+  const profileRoute = path === '/profile' || path.startsWith('/users/');
 
   return (
     <div className="App">
@@ -51,6 +55,15 @@ function App() {
         {user ? (
           <>
             <p role="status">Signed in as {user.email}</p>
+            <a
+              href="/profile"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate('/profile');
+              }}
+            >
+              My profile
+            </a>
             <button type="button" onClick={() => logout().then(() => setUser(null))}>
               Log out
             </button>
@@ -93,6 +106,19 @@ function App() {
               navigate('/');
             }}
           />
+        ) : profileRoute &&
+          (path === '/profile' || (publicProfileId !== null && Number.isSafeInteger(publicProfileId))) ? (
+          <ProfilePage
+            key={`${path}:${user?.id ?? 'visitor'}`}
+            profileId={publicProfileId}
+            user={user}
+            onLogin={() => navigate('/login')}
+            onBack={() => navigate('/')}
+          />
+        ) : profileRoute ? (
+          <section role="alert">
+            <h1>Profile not found</h1>
+          </section>
         ) : isDetailRoute && validDetailId ? (
           <VideoDetailPage videoId={validDetailId} onBack={() => navigate('/')} />
         ) : isDetailRoute ? (

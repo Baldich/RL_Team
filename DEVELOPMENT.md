@@ -211,3 +211,32 @@ GET /api/videos?page=0&size=12 returns content summaries (id, title, thumbnailPa
 Validation: backend mvn clean verify (Java 21; Docker required for PostgreSQL Testcontainers); frontend npm.cmd run test -- --watchAll=false --ci, npm.cmd run lint, npm.cmd run build. Reports: backend/target/site/jacoco/index.html and frontend/coverage/index.html.
 
 Source IDs identify an existing grabber dataset. Regenerating a different dataset with reused numeric IDs requires an explicit data-management decision; the importer deliberately does not overwrite records. Removing media files after import leaves their metadata in the catalog. Playback, uploads and search remain separate stories.
+
+## US-03 profiles and manual checks
+
+Profile fields are persisted on the existing PostgreSQL app_users table: displayName (up to 80 characters),
+avatarUrl (up to 2048) and description (up to 1000). The existing ddl-auto=update configuration adds nullable
+columns so accounts from Sprint 1 continue to work; unset fields display a default avatar and empty biography.
+Avatar images use an HTTP/HTTPS URL. An empty URL restores the default avatar.
+
+- GET /api/users/{id}/profile returns only id, displayName, avatarUrl and description to any visitor.
+- GET /api/profile returns the authenticated user's profile.
+- PUT /api/profile requires the session cookie and X-CSRF-TOKEN. It edits only the session owner's account,
+  ignores submitted account IDs, validates field lengths and avatar URLs, and returns the saved public DTO.
+- Browser routes: /profile for the current user; /users/{id} for a shareable public profile.
+
+Manual validation:
+
+1. Start the database/backend/frontend as above. Register or log in and open **My profile**.
+2. Save a display name, an HTTP/HTTPS image URL and a description. Confirm the displayed profile updates,
+   then reload and restart the backend to confirm persistence. Clear fields to restore the defaults.
+3. Copy the **Public profile** link and open it in a private browser window or as a different registered user.
+   Confirm public fields are visible, with no email, password information or edit controls.
+4. Log out while viewing your own profile. Confirm the edit form disappears and sign-in is requested.
+5. Open /users/999999999 to check not found. Stop the backend and use Retry to check recovery.
+6. API checks: anonymous GET/PUT /api/profile is rejected, authenticated PUT without CSRF returns 403,
+   invalid/oversized fields return 400 without changing the previous profile, and public GET stays available.
+
+Automated validation: backend `mvn clean verify` (Java 21 and Docker); frontend
+`npm.cmd run test -- --watchAll=false --ci --runInBand`, `npm.cmd run lint`, `npm.cmd run build`.
+Prompt traceability: prompts/us-03-user-profile.prompt.md. Include it with the implementation in the feature PR.
