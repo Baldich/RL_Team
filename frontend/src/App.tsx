@@ -120,7 +120,12 @@ function App() {
             <h1>Profile not found</h1>
           </section>
         ) : isDetailRoute && validDetailId ? (
-          <VideoDetailPage videoId={validDetailId} onBack={() => navigate('/')} />
+          <VideoDetailPage
+            videoId={validDetailId}
+            onBack={() => navigate('/')}
+            user={user}
+            onLoginRequest={() => navigate('/login')}
+          />
         ) : isDetailRoute ? (
           <section role="alert" aria-labelledby="video-not-found-title">
             <h1 id="video-not-found-title">Video not found</h1>

@@ -12,8 +12,11 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VideosController.class)
@@ -62,5 +65,36 @@ class VideosControllerTest {
     void returnsNotFoundWhenVideoUnavailable() throws Exception {
         when(videos.getVideoDetails(99L)).thenThrow(new com.tecnocampus.LS2.protube_back.services.VideoNotFoundException(99L));
         mvc.perform(get("/api/videos/99")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void authenticatedUsersCanPostComments() throws Exception {
+        when(videos.addComment(eq(1L), eq(7L), eq("Nice!")))
+                .thenReturn(new VideoCommentResponse("visitor@example.com", "Nice!", 123L, 0));
+        var auth = authentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                new RegistrationResponse(7L, "visitor@example.com"), null, java.util.List.of()));
+        mvc.perform(post("/api/videos/1/comments").with(csrf()).with(auth)
+                        .contentType("application/json").content("{\"text\":\"Nice!\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("author").value("visitor@example.com"))
+                .andExpect(jsonPath("text").value("Nice!"));
+    }
+
+    @Test
+    void unauthenticatedUsersCannotPostComments() throws Exception {
+        mvc.perform(post("/api/videos/1/comments").with(csrf()).contentType("application/json").content("{\"text\":\"Nice!\"}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(videos);
+    }
+
+    @Test
+    void emptyCommentIsRejected() throws Exception {
+        var auth = authentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                new RegistrationResponse(7L, "visitor@example.com"), null, java.util.List.of()));
+        mvc.perform(post("/api/videos/1/comments").with(csrf()).with(auth)
+                        .contentType("application/json").content("{\"text\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("fieldErrors.text").value("Comment cannot be empty."));
+        verifyNoInteractions(videos);
     }
 }

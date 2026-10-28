@@ -88,4 +88,5 @@ class VideosWebTest extends PostgresTestSupport {
         mvc.perform(post("/api/auth/logout").session(loginSession).with(csrf())).andExpect(status().isNoContent());
         mvc.perform(get("/api/videos?page=2")).andExpect(status().isOk()).andExpect(jsonPath("content").isEmpty());
     }
+
 }

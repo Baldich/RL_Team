@@ -80,7 +80,28 @@ class VideoServiceTest {
         assertThrows(VideoNotFoundException.class, () -> service(repository).getVideoDetails(1L));
     }
 
+    @Test
+    void storesCommentForAuthenticatedUser() throws Exception {
+        var repository = mock(VideoRepository.class);
+        var userRepository = mock(com.tecnocampus.LS2.protube_back.repository.UserRepository.class);
+        var commentRepository = mock(com.tecnocampus.LS2.protube_back.repository.CommentRepository.class);
+        var video = new Video("Title", "1.webp", "1.mp4", 77L);
+        when(repository.findById(1L)).thenReturn(Optional.of(video));
+        when(userRepository.findById(10L)).thenReturn(Optional.of(new com.tecnocampus.LS2.protube_back.domain.User("viewer@example.com", "hash")));
+        when(commentRepository.save(any(com.tecnocampus.LS2.protube_back.domain.Comment.class)))
+                .thenAnswer(invocation -> {
+                    var comment = invocation.getArgument(0, com.tecnocampus.LS2.protube_back.domain.Comment.class);
+                    return new com.tecnocampus.LS2.protube_back.domain.Comment(comment.getVideo(), comment.getAuthor(), comment.getText(), comment.getCreatedAt(), comment.getLikeCount());
+                });
+        var result = new VideoService(repository, commentRepository, userRepository, new ObjectMapper(), store.toString())
+                .addComment(1L, 10L, " Great! ");
+        assertEquals("Great!", result.text());
+        assertEquals("viewer@example.com", result.author());
+    }
+
     private VideoService service(VideoRepository repository) {
-        return new VideoService(repository, new ObjectMapper(), store.toString());
+        var userRepository = mock(com.tecnocampus.LS2.protube_back.repository.UserRepository.class);
+        var commentRepository = mock(com.tecnocampus.LS2.protube_back.repository.CommentRepository.class);
+        return new VideoService(repository, commentRepository, userRepository, new ObjectMapper(), store.toString());
     }
 }
