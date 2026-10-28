@@ -2,11 +2,15 @@ package com.tecnocampus.LS2.protube_back.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tecnocampus.LS2.protube_back.domain.Comment;
+import com.tecnocampus.LS2.protube_back.domain.User;
 import com.tecnocampus.LS2.protube_back.domain.Video;
 import com.tecnocampus.LS2.protube_back.dto.VideoCommentResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoDetailResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoPageResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoSummaryResponse;
+import com.tecnocampus.LS2.protube_back.repository.CommentRepository;
+import com.tecnocampus.LS2.protube_back.repository.UserRepository;
 import com.tecnocampus.LS2.protube_back.repository.VideoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -19,17 +23,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class VideoService {
     private final VideoRepository videos;
+    private final CommentRepository comments;
+    private final UserRepository users;
     private final ObjectMapper mapper;
     private final Path storeDir;
 
-    public VideoService(VideoRepository videos, ObjectMapper mapper,
-                        @Value("${pro_tube.store.dir}") String storeDir) {
+    public VideoService(VideoRepository videos, CommentRepository comments, UserRepository users,
+                        ObjectMapper mapper, @Value("${pro_tube.store.dir}") String storeDir) {
         this.videos = videos;
+        this.comments = comments;
+        this.users = users;
         this.mapper = mapper;
         this.storeDir = Paths.get(storeDir);
     }
@@ -55,16 +64,38 @@ public class VideoService {
         try {
             JsonNode metadata = mapper.readTree(metadataFile.toFile());
             String description = metadata.path("meta").path("description").asText("");
+            List<VideoCommentResponse> detailComments = new ArrayList<>(readComments(metadata.path("meta").path("comments")));
+            detailComments.addAll(comments.findByVideoIdOrderByCreatedAtAsc(id).stream()
+                    .map(comment -> new VideoCommentResponse(
+                            comment.getAuthor().getEmail(),
+                            comment.getText(),
+                            comment.getCreatedAt(),
+                            comment.getLikeCount()))
+                    .toList());
+            detailComments.sort(Comparator.comparingLong(VideoCommentResponse::timestamp));
             return new VideoDetailResponse(
                     video.getId(),
                     video.getTitle(),
                     description,
                     video.getVideoPath(),
                     video.getThumbnailPath(),
-                    readComments(metadata.path("meta").path("comments")));
+                    detailComments);
         } catch (IOException exception) {
             throw new VideoNotFoundException(id);
         }
+    }
+
+    @Transactional
+    public VideoCommentResponse addComment(long videoId, long userId, String text) {
+        Video video = videos.findById(videoId).orElseThrow(() -> new VideoNotFoundException(videoId));
+        User author = users.findById(userId).orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
+        String cleanText = text == null ? "" : text.trim();
+        if (cleanText.isBlank()) {
+            throw new IllegalArgumentException("Comment cannot be empty.");
+        }
+        long timestamp = System.currentTimeMillis() / 1000L;
+        Comment comment = comments.save(new Comment(video, author, cleanText, timestamp, 0));
+        return new VideoCommentResponse(author.getEmail(), comment.getText(), comment.getCreatedAt(), comment.getLikeCount());
     }
 
     private static boolean isReadableFile(Path path) {

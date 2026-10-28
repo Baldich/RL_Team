@@ -1,17 +1,63 @@
+import { useEffect, useState, type FormEvent } from 'react';
 import { getEnv } from '../utils/Env';
 import { useVideoDetails } from '../useVideoDetails';
+import { submitComment } from '../commentApi';
 
 interface Props {
   videoId: number;
   onBack: () => void;
+  user?: { email: string; id: number } | null;
+  onLoginRequest?: () => void;
 }
 
 function formatTimestamp(timestamp: number) {
   return new Date(timestamp * 1000).toLocaleString();
 }
 
-export default function VideoDetailPage({ videoId, onBack }: Props) {
+export default function VideoDetailPage({ videoId, onBack, user = null, onLoginRequest = () => {} }: Props) {
   const { message, retry, status, value } = useVideoDetails(videoId);
+  const [draft, setDraft] = useState('');
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const [localComments, setLocalComments] = useState(value?.comments ?? []);
+
+  useEffect(() => {
+    setLocalComments(value?.comments ?? []);
+  }, [value?.comments]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextText = draft.trim();
+    if (!nextText) {
+      setError('Comment cannot be empty.');
+      return;
+    }
+    if (!user) {
+      onLoginRequest();
+      return;
+    }
+    setPending(true);
+    setError('');
+    try {
+      const newComment = await submitComment(videoId, nextText);
+      setLocalComments((current) => [...current, newComment]);
+      setDraft('');
+      retry();
+    } catch (requestError: unknown) {
+      if (requestError && typeof requestError === 'object' && 'response' in requestError) {
+        const axiosError = requestError as { response?: { status?: number; data?: { message?: string } } };
+        if (axiosError.response?.status === 401) {
+          onLoginRequest();
+          return;
+        }
+        setError(axiosError.response?.data?.message ?? 'Unable to post your comment.');
+      } else {
+        setError('Unable to post your comment.');
+      }
+    } finally {
+      setPending(false);
+    }
+  }
 
   if (status === 'loading' || status === 'idle') {
     return <p role="status">Loading...</p>;
@@ -58,9 +104,25 @@ export default function VideoDetailPage({ videoId, onBack }: Props) {
         </section>
         <section aria-labelledby="video-comments-title">
           <h2 id="video-comments-title">Comments</h2>
-          {value.comments.length > 0 ? (
+          <form aria-label="Comment form" onSubmit={handleSubmit} noValidate>
+            <label htmlFor="comment-text">Add a comment</label>
+            <textarea
+              id="comment-text"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              disabled={pending}
+              aria-invalid={Boolean(error)}
+            />
+            {error && <p role="alert">{error}</p>}
+            {user ? (
+              <button type="submit" disabled={pending}>{pending ? 'Posting...' : 'Post comment'}</button>
+            ) : (
+              <button type="button" onClick={onLoginRequest}>Log in to comment</button>
+            )}
+          </form>
+          {localComments.length > 0 ? (
             <ul aria-label="Comments">
-              {value.comments.map((comment, index) => (
+              {localComments.map((comment, index) => (
                 <li key={`${comment.timestamp}-${index}`}>
                   <p>{comment.text}</p>
                   <p>
