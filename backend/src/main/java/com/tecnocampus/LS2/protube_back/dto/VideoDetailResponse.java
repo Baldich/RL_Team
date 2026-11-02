@@ -3,4 +3,10 @@ package com.tecnocampus.LS2.protube_back.dto;
 import java.util.List;
 
 public record VideoDetailResponse(Long id, String title, String description, String videoPath,
-                                  String thumbnailPath, List<VideoCommentResponse> comments) {}
+                                  String thumbnailPath, List<VideoCommentResponse> comments,
+                                  List<String> tags, String category, Long ownerId) {
+    public VideoDetailResponse(Long id, String title, String description, String videoPath,
+                               String thumbnailPath, List<VideoCommentResponse> comments) {
+        this(id, title, description, videoPath, thumbnailPath, comments, List.of(), "", null);
+    }
+}

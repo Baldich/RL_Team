@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 @Service
 public class VideoImportService {
@@ -52,6 +53,14 @@ public class VideoImportService {
                 return;
             }
             long sourceId = id.longValue();
+            var meta = metadata.path("meta");
+            String description = meta.path("description").isTextual() ? meta.path("description").asText().trim() : "";
+            String category = meta.path("categories").isArray() && meta.path("categories").size() > 0
+                    ? meta.path("categories").get(0).asText("").trim() : "";
+            var tags = new ArrayList<String>();
+            if (meta.path("tags").isArray()) meta.path("tags").forEach(tag -> {
+                if (tag.isTextual() && !tag.asText().isBlank()) tags.add(tag.asText().trim());
+            });
             String stem = Long.toString(sourceId);
             if (!file.getFileName().toString().equals(stem + ".json")
                     || !Files.isRegularFile(file.resolveSibling(stem + ".webp"), LinkOption.NOFOLLOW_LINKS)
@@ -63,7 +72,8 @@ public class VideoImportService {
             }
             if (!videos.existsBySourceId(sourceId)) {
                 try {
-                    videos.saveAndFlush(new Video(title.asText().trim(), stem + ".webp", stem + ".mp4", sourceId));
+                    videos.saveAndFlush(new Video(title.asText().trim(), stem + ".webp", stem + ".mp4", sourceId,
+                            null, description, category, tags));
                 } catch (DataIntegrityViolationException exception) {
                     // The database unique constraint also protects concurrent initial imports.
                     if (!videos.existsBySourceId(sourceId)) throw exception;

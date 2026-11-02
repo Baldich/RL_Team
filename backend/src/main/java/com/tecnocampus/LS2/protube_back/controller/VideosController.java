@@ -5,12 +5,16 @@ import com.tecnocampus.LS2.protube_back.dto.RegistrationResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoCommentRequest;
 import com.tecnocampus.LS2.protube_back.dto.VideoCommentResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoDetailResponse;
+import com.tecnocampus.LS2.protube_back.dto.VideoMetadataResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoPageResponse;
+import com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest;
+import com.tecnocampus.LS2.protube_back.dto.RegistrationResponse;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,6 +40,14 @@ public class VideosController {
     @GetMapping("/{id}")
     public VideoDetailResponse getVideo(@PathVariable long id) {
         return videos.getVideoDetails(id);
+    }
+
+    @PutMapping("/{id}")
+    public VideoMetadataResponse updateMetadata(@PathVariable long id,
+                                                 @AuthenticationPrincipal RegistrationResponse user,
+                                                 @Valid @RequestBody VideoUpdateRequest request) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in to edit videos.");
+        return videos.updateMetadata(id, user.id(), request);
     }
 
     @PostMapping("/{id}/comments")

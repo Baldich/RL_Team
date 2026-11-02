@@ -17,6 +17,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VideosController.class)
@@ -95,6 +96,30 @@ class VideosControllerTest {
                         .contentType("application/json").content("{\"text\":\"   \"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("fieldErrors.text").value("Comment cannot be empty."));
+        verifyNoInteractions(videos);
+    }
+
+    @Test
+    void ownerCanUpdateVideoMetadata() throws Exception {
+        when(videos.updateMetadata(eq(1L), eq(7L), any(VideoUpdateRequest.class)))
+                .thenReturn(new VideoMetadataResponse(1L, "Updated", "Science", List.of("physics"), 7L));
+        var auth = authentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                new RegistrationResponse(7L, "owner@example.com"), null, java.util.List.of()));
+        mvc.perform(put("/api/videos/1").with(csrf()).with(auth)
+                        .contentType("application/json")
+                        .content("{\"description\":\"Updated\",\"category\":\"Science\",\"tags\":[\"physics\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("description").value("Updated"))
+                .andExpect(jsonPath("category").value("Science"))
+                .andExpect(jsonPath("tags[0]").value("physics"))
+                .andExpect(jsonPath("ownerId").value(7));
+    }
+
+    @Test
+    void anonymousUsersCannotUpdateVideoMetadata() throws Exception {
+        mvc.perform(put("/api/videos/1").with(csrf()).contentType("application/json")
+                        .content("{\"description\":\"Updated\",\"category\":\"Science\",\"tags\":[]}"))
+                .andExpect(status().isUnauthorized());
         verifyNoInteractions(videos);
     }
 }
