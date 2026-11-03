@@ -8,6 +8,7 @@ import LoginForm from './components/LoginForm';
 import VideoGrid from './components/VideoGrid';
 import VideoDetailPage from './components/VideoDetailPage';
 import ProfilePage from './components/ProfilePage';
+import UploadVideoPage from './components/UploadVideoPage';
 
 function App() {
   const [user, setUser] = useState<RegisteredUser | null>(null);
@@ -39,6 +40,13 @@ function App() {
     setPath(nextPath);
   }
 
+  useEffect(() => {
+    if (path === '/upload' && !sessionLoading && !user) {
+      window.history.replaceState({}, '', '/login');
+      setPath('/login');
+    }
+  }, [path, sessionLoading, user]);
+
   const detailMatch = path.match(/^\/videos\/([^/]+)$/);
   const detailId = detailMatch ? Number(detailMatch[1]) : null;
   const detailPath = detailMatch ? detailMatch[1] : null;
@@ -55,6 +63,15 @@ function App() {
         {user ? (
           <>
             <p role="status">Signed in as {user.email}</p>
+            <a
+              href="/upload"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate('/upload');
+              }}
+            >
+              Upload Video
+            </a>
             <a
               href="/profile"
               onClick={(event) => {
@@ -92,6 +109,19 @@ function App() {
         )}
         {sessionLoading ? (
           <p role="status">Checking session...</p>
+        ) : path === '/upload' ? (
+          user ? (
+            <UploadVideoPage
+              onUploaded={(id) => navigate(`/videos/${id}`)}
+              onLogin={() => {
+                setUser(null);
+                navigate('/login');
+              }}
+              onBack={() => navigate('/')}
+            />
+          ) : (
+            <p role="status">Redirecting to login…</p>
+          )
         ) : path === '/register' ? (
           <RegistrationForm
             onRegistered={(registered) => {

@@ -99,3 +99,22 @@
 .profile-page form {
   text-align: left;
 }
+
+.upload-page {
+  max-width: 42rem;
+  width: 100%;
+  text-align: left;
+}
+.upload-page fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.upload-page textarea {
+  min-height: 8rem;
+}
+.upload-page input,
+.upload-page textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+}

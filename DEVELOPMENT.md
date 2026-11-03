@@ -1,5 +1,93 @@
 # Development guide
 
+## US-06: authenticated video uploads
+
+The backend host must provide **FFmpeg and FFprobe** on PATH, including the
+H.264 decoder, libx264 (test fixture generation), and libwebp encoder. These are
+now backend runtime dependencies, in addition to their use by videoGrabber.
+Optionally set `ENV_PROTUBE_FFMPEG` and `ENV_PROTUBE_FFPROBE` to executable paths.
+Processes use argument lists without a shell, a 120-second timeout per process,
+and at most two concurrent processing pipelines per backend instance. CI installs
+FFmpeg before backend tests. Backend runtime tests require both commands.
+
+### Contract and storage
+
+- `POST /api/videos` accepts multipart parts `file` (binary) and `metadata`
+  (`application/json`, containing `title` and `description`). The browser sends
+  the session cookie and the header returned by `GET /api/auth/csrf`.
+- Required metadata is trimmed: title 1–255 characters, description 1–5000.
+  Ownership always comes from the session. The existing US-07 editor is reused.
+- Supported content: MP4 with H.264, 8-bit 4:2:0 video, and AAC audio or no audio.
+  Actual media is probed and decoded; extension/MIME alone is insufficient.
+- Maximum file size is **100 MiB (104857600 bytes)**, displayed as 100 MB in the
+  interface. The multipart request limit is 101 MiB to allow metadata/overhead.
+- Success returns `201`, a `/api/videos/{id}` Location, and the existing detail
+  DTO shape. Errors include 400 (fields/parts), 401 (session), 403 (CSRF), 413
+  (size), 415 (unsupported media), 422 (corrupt/timed-out processing), 503 (busy),
+  and a sanitized 500 (storage/tool/database failure).
+- Servlet multipart files and processing files use the OS temporary directory,
+  outside the public store. Do not configure the OS or servlet temporary directory
+  inside `ENV_PROTUBE_STORE_DIR`. Ensure it has sufficient free space and private
+  permissions for the backend account.
+- Completed media uses UUID `.mp4` and `.webp` names in the existing configured
+  store. Only a completed file pair is recorded in PostgreSQL. Failed copying,
+  processing, persistence, or transaction commit triggers cleanup. Cleanup errors
+  are logged without exposing paths. Abrupt process termination or disk/permission
+  failures can leave unreferenced assets: operators should reconcile unreferenced
+  UUID pairs and abandoned OS `protube-upload-*` directories while the backend is
+  stopped. No automatic deletion of existing content is performed.
+- Keep the PostgreSQL volume **and the media store** across restarts. A future
+  backend container must mount a persistent writable store and include FFmpeg.
+  The existing Compose file still provides PostgreSQL only.
+- Uploaded rows have `sourceId = null`; details use database metadata/comments
+  without a JSON sidecar. Imported numeric videoGrabber triples remain supported.
+- Catalog order stays ascending by database ID. New uploads can appear on later
+  pages; successful upload navigates directly to its detail page.
+- A lost success response can leave a complete published video. The UI advises
+  checking the catalog before retrying; uploads are not automatically retried.
+
+### Local manual verification
+
+1. Install Java 21, Maven, Node 22, FFmpeg/FFprobe, and start PostgreSQL as described
+   below. Set `ENV_PROTUBE_STORE_DIR` to a persistent writable absolute directory
+   ending with `/` or `\`, and set the existing database environment variables.
+2. Run `mvn spring-boot:run` in `backend/` and `npm run dev` in `frontend/`.
+3. Open `http://localhost:5173/upload` while signed out: wait for session loading
+   and verify redirection to `/login`. Register or log in, then click **Upload Video**.
+4. Select an MP4/H.264 file, enter a title and description, and upload. Verify the
+   pending state prevents resubmission, then the new detail page opens and plays.
+5. Return to the catalog and paginate to the new entry. Verify its title and
+   thumbnail. Open it in a signed-out browser and verify playback and seeking.
+6. As the owner, edit metadata using the existing editor and post a comment.
+   Reload and verify both persist. As another user, verify no owner edit controls.
+7. Restart the backend using the same database and store. Verify the upload remains
+   listed, plays, and retains its edited description and comment. Also play an
+   imported videoGrabber video to check compatibility.
+8. Try blank metadata, a WebM, corrupt bytes renamed `.mp4`, and a file larger
+   than 100 MiB. Verify clear errors and no new catalog entries or partial files.
+   Disconnect the network or make a dedicated test store unwritable to exercise
+   failures; restore permissions/connectivity afterward. Do not use live data for
+   destructive failure simulations.
+9. Reload `/upload` in the production build to verify backend SPA forwarding.
+
+### Automated verification
+
+Run `mvn clean verify` (Java 21, Docker for PostgreSQL Testcontainers, FFmpeg and
+FFprobe), and frontend `npm run test -- --watchAll=false --ci --runInBand`,
+`npm run build`, and `npm run lint`.
+
+`VideoUploadIntegrationTest` covers real FFmpeg upload → PostgreSQL → public
+catalog/details → media range requests → existing owner editing and comments.
+Unit/security tests cover failures, rollback cleanup and metadata/authentication.
+Frontend tests mock APIs and cover form, session initialization, redirect and
+success navigation. There is no existing browser E2E runner in this repository;
+this change adds server integration coverage without introducing a new browser
+framework. Actual browser playback remains a manual check; a full browser E2E
+suite is still required to complete the broader NFR-02 scope.
+
+Traceability: `prompts/us-06-upload-video.prompt.md`. Include the prompt and changes
+in the eventual team-reviewed contribution; no commit or PR is made by this task.
+
 How to set up, run, test and build ProTube locally. For the assignment rules see [README.md](./README.md), and for
 the MVP spec see [REQUIREMENT.md](./REQUIREMENT.md).
 

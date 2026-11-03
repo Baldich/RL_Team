@@ -120,6 +120,20 @@ class VideoServiceTest {
                         new com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest("No", "No", new ArrayList<>())));
     }
 
+    @Test
+    void uploadedDetailsUseDatabaseWithoutSidecar() throws Exception {
+        var repository = mock(VideoRepository.class);
+        var video = new Video("Uploaded", "upload.webp", "upload.mp4", null, null, "Database description", "", List.of());
+        when(repository.findById(42L)).thenReturn(Optional.of(video));
+        Files.writeString(store.resolve("upload.mp4"), "video");
+        Files.writeString(store.resolve("upload.webp"), "thumbnail");
+        var result = service(repository).getVideoDetails(42L);
+        assertEquals("Database description", result.description());
+        assertTrue(result.comments().isEmpty());
+        Files.delete(store.resolve("upload.mp4"));
+        assertThrows(VideoNotFoundException.class, () -> service(repository).getVideoDetails(42L));
+    }
+
     private VideoService service(VideoRepository repository) {
         var userRepository = mock(com.tecnocampus.LS2.protube_back.repository.UserRepository.class);
         var commentRepository = mock(com.tecnocampus.LS2.protube_back.repository.CommentRepository.class);

@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokens))
                 .securityContext(context -> context.securityContextRepository(contexts))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/videos/*/comments").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/videos", "/api/videos/*/comments").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/videos/*").authenticated()
                         .requestMatchers("/api/profile").authenticated()
                         .anyRequest().permitAll())
