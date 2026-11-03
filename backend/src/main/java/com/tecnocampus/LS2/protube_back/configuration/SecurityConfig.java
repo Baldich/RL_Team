@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .securityContext(context -> context.securityContextRepository(contexts))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/videos/*/comments").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/videos/*").authenticated()
                         .requestMatchers("/api/profile").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(

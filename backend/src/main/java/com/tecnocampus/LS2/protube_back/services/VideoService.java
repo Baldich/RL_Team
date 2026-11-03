@@ -7,7 +7,9 @@ import com.tecnocampus.LS2.protube_back.domain.User;
 import com.tecnocampus.LS2.protube_back.domain.Video;
 import com.tecnocampus.LS2.protube_back.dto.VideoCommentResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoDetailResponse;
+import com.tecnocampus.LS2.protube_back.dto.VideoMetadataResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoPageResponse;
+import com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest;
 import com.tecnocampus.LS2.protube_back.dto.VideoSummaryResponse;
 import com.tecnocampus.LS2.protube_back.repository.CommentRepository;
 import com.tecnocampus.LS2.protube_back.repository.UserRepository;
@@ -17,6 +19,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,7 +67,9 @@ public class VideoService {
         }
         try {
             JsonNode metadata = mapper.readTree(metadataFile.toFile());
-            String description = metadata.path("meta").path("description").asText("");
+            String description = video.hasPersistedDescription()
+                    ? video.getDescription()
+                    : metadata.path("meta").path("description").asText("");
             List<VideoCommentResponse> detailComments = new ArrayList<>(readComments(metadata.path("meta").path("comments")));
             detailComments.addAll(comments.findByVideoIdOrderByCreatedAtAsc(id).stream()
                     .map(comment -> new VideoCommentResponse(
@@ -79,10 +85,29 @@ public class VideoService {
                     description,
                     video.getVideoPath(),
                     video.getThumbnailPath(),
-                    detailComments);
+                    detailComments,
+                    video.getTags(),
+                    video.getCategory(),
+                    video.getOwnerId());
         } catch (IOException exception) {
             throw new VideoNotFoundException(id);
         }
+    }
+
+    @Transactional
+    public VideoMetadataResponse updateMetadata(long videoId, long userId, VideoUpdateRequest request) {
+        Video video = videos.findById(videoId).orElseThrow(() -> new VideoNotFoundException(videoId));
+        if (!userOwns(video, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the video owner can edit its metadata.");
+        }
+        video.updateMetadata(request.description(), request.category(), request.tags());
+        Video saved = videos.saveAndFlush(video);
+        return new VideoMetadataResponse(saved.getId(), saved.getDescription(), saved.getCategory(),
+                saved.getTags(), saved.getOwnerId());
+    }
+
+    private static boolean userOwns(Video video, long userId) {
+        return video.getOwnerId() != null && video.getOwnerId() == userId;
     }
 
     @Transactional

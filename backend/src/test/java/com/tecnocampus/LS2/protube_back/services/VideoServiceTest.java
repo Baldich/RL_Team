@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -97,6 +98,26 @@ class VideoServiceTest {
                 .addComment(1L, 10L, " Great! ");
         assertEquals("Great!", result.text());
         assertEquals("viewer@example.com", result.author());
+    }
+
+    @Test
+    void ownerCanUpdateMetadataAndNonOwnerIsRejected() {
+        var repository = mock(VideoRepository.class);
+        var owner = mock(com.tecnocampus.LS2.protube_back.domain.User.class);
+        when(owner.getId()).thenReturn(10L);
+        var video = new Video("Title", "1.webp", "1.mp4", 77L, owner, "Old", "Old category", List.of("old"));
+        when(repository.findById(1L)).thenReturn(Optional.of(video));
+        when(repository.saveAndFlush(video)).thenReturn(video);
+        var service = service(repository);
+        var updated = service.updateMetadata(1L, 10L,
+                new com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest(" New ", " Science ", List.of(" physics ")));
+        assertEquals("New", updated.description());
+        assertEquals("Science", updated.category());
+        assertEquals(List.of("physics"), updated.tags());
+        verify(repository).saveAndFlush(video);
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.updateMetadata(1L, 11L,
+                        new com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest("No", "No", new ArrayList<>())));
     }
 
     private VideoService service(VideoRepository repository) {

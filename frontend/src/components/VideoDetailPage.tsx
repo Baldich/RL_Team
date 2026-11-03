@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { getEnv } from '../utils/Env';
 import { useVideoDetails } from '../useVideoDetails';
 import { submitComment } from '../commentApi';
+import { updateVideoMetadata } from '../video';
+import type { VideoMetadataFields } from '../video';
 
 interface Props {
   videoId: number;
@@ -19,11 +21,39 @@ export default function VideoDetailPage({ videoId, onBack, user = null, onLoginR
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [savingMetadata, setSavingMetadata] = useState(false);
+  const [metadataError, setMetadataError] = useState('');
+  const [metadataMessage, setMetadataMessage] = useState('');
+  const [metadata, setMetadata] = useState<VideoMetadataFields>({ description: '', category: '', tags: [] });
   const [localComments, setLocalComments] = useState(value?.comments ?? []);
 
   useEffect(() => {
     setLocalComments(value?.comments ?? []);
-  }, [value?.comments]);
+    if (value) {
+      setMetadata({ description: value.description, category: value.category ?? '', tags: value.tags ?? [] });
+    }
+  }, [value]);
+
+  async function saveMetadata(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingMetadata(true);
+    setMetadataError('');
+    setMetadataMessage('');
+    try {
+      const updated = await updateVideoMetadata(videoId, metadata);
+      setMetadata({ description: updated.description, category: updated.category, tags: updated.tags });
+      setMetadataMessage('Video metadata saved.');
+      retry();
+    } catch (requestError: unknown) {
+      const status =
+        requestError && typeof requestError === 'object' && 'response' in requestError
+          ? (requestError as { response?: { status?: number } }).response?.status
+          : undefined;
+      setMetadataError(status === 403 ? 'Only the video owner can edit this video.' : 'Unable to save video metadata.');
+    } finally {
+      setSavingMetadata(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,6 +131,36 @@ export default function VideoDetailPage({ videoId, onBack, user = null, onLoginR
         <section aria-labelledby="video-description-title">
           <h2 id="video-description-title">Description</h2>
           <p>{value.description || 'No description available.'}</p>
+          {value.ownerId != null && user?.id === value.ownerId && (
+            <form aria-label="Edit video metadata" onSubmit={saveMetadata}>
+              <h2>Edit metadata</h2>
+              {metadataMessage && <p role="status">{metadataMessage}</p>}
+              {metadataError && <p role="alert">{metadataError}</p>}
+              <fieldset disabled={savingMetadata}>
+                <label htmlFor="video-description">Description</label>
+                <textarea
+                  id="video-description"
+                  value={metadata.description}
+                  onChange={(event) => setMetadata({ ...metadata, description: event.target.value })}
+                />
+                <label htmlFor="video-category">Category</label>
+                <input
+                  id="video-category"
+                  value={metadata.category}
+                  onChange={(event) => setMetadata({ ...metadata, category: event.target.value })}
+                />
+                <label htmlFor="video-tags">Tags</label>
+                <input
+                  id="video-tags"
+                  value={metadata.tags.join(', ')}
+                  onChange={(event) =>
+                    setMetadata({ ...metadata, tags: event.target.value.split(',').map((tag) => tag.trim()) })
+                  }
+                />
+                <button type="submit">{savingMetadata ? 'Saving...' : 'Save metadata'}</button>
+              </fieldset>
+            </form>
+          )}
         </section>
         <section aria-labelledby="video-comments-title">
           <h2 id="video-comments-title">Comments</h2>
@@ -115,9 +175,13 @@ export default function VideoDetailPage({ videoId, onBack, user = null, onLoginR
             />
             {error && <p role="alert">{error}</p>}
             {user ? (
-              <button type="submit" disabled={pending}>{pending ? 'Posting...' : 'Post comment'}</button>
+              <button type="submit" disabled={pending}>
+                {pending ? 'Posting...' : 'Post comment'}
+              </button>
             ) : (
-              <button type="button" onClick={onLoginRequest}>Log in to comment</button>
+              <button type="button" onClick={onLoginRequest}>
+                Log in to comment
+              </button>
             )}
           </form>
           {localComments.length > 0 ? (

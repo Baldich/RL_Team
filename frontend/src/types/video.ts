@@ -26,4 +26,7 @@ export interface VideoDetails {
   videoPath: string;
   thumbnailPath: string;
   comments: VideoComment[];
+  tags?: string[];
+  category?: string;
+  ownerId?: number | null;
 }
