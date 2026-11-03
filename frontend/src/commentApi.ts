@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { getEnv } from './utils/Env';
 
-export async function submitComment(videoId: number, text: string): Promise<{ author: string; text: string; timestamp: number; likeCount: number }> {
+export async function submitComment(
+  videoId: number,
+  text: string
+): Promise<{ author: string; text: string; timestamp: number; likeCount: number }> {
   const csrf = await axios.get<{ headerName: string; token: string }>(`${getEnv().API_BASE_URL}/auth/csrf`, {
     withCredentials: true,
   });
