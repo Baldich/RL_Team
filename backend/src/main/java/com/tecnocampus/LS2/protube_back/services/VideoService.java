@@ -62,11 +62,12 @@ public class VideoService {
         Path metadataFile = storeDir.resolve(video.getSourceId() + ".json");
         Path videoFile = storeDir.resolve(video.getVideoPath());
         Path thumbnailFile = storeDir.resolve(video.getThumbnailPath());
-        if (!isReadableFile(metadataFile) || !isReadableFile(videoFile) || !isReadableFile(thumbnailFile)) {
+        if ((video.getSourceId() != null && !isReadableFile(metadataFile)) || !isReadableFile(videoFile) || !isReadableFile(thumbnailFile)) {
             throw new VideoNotFoundException(id);
         }
         try {
-            JsonNode metadata = mapper.readTree(metadataFile.toFile());
+            JsonNode metadata = video.getSourceId() == null ? mapper.createObjectNode() : mapper.readTree(metadataFile.toFile());
+            if (metadata == null) throw new VideoNotFoundException(id);
             String description = video.hasPersistedDescription()
                     ? video.getDescription()
                     : metadata.path("meta").path("description").asText("");
