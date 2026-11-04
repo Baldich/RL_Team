@@ -31,7 +31,7 @@ Work only on feature/us-04-video-list. Do not change unrelated functionality, co
 - Generated database IDs are separate from unique grabber source IDs, including source ID zero.
 - Import only complete JSON/WEBP/MP4 sets; do not follow individual file symlinks or delete persisted data.
 - Public GET catalog and media access; preserve session, CSRF, CORS, registration and login behavior.
-- Explicit page DTO; default page 0, size 12; deterministic ID ordering; size bounded to 100.
+- Explicit page DTO; default page 0, size 12; deterministic ID-descending ordering so newly uploaded videos appear first; size bounded to 100.
 - Frontend URLs use src/utils/Env.ts; tests mock requests and query primarily by role.
 
 ## Acceptance criteria and validation

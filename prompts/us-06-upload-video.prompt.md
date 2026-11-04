@@ -12,7 +12,8 @@ DTO boundaries, existing sessions and CSRF. Accept MP4/H.264 up to 100 MiB with
 trimmed required title (255) and description (5000). Inspect content, use bounded
 FFmpeg processes, generate thumbnails, stage privately, use UUID paths, and clean
 up on failure including database commit failure. Preserve imported video sidecars,
-catalog ordering, comments, and existing US-07 ownership/metadata editing.
+catalog pagination with newest uploads first, comments, and existing US-07
+ownership/metadata editing.
 
 ## Acceptance and verification
 Authenticated upload returns 201 and appears in catalog and player; anonymous page

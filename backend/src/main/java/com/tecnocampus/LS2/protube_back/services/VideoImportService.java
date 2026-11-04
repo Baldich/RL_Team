@@ -59,7 +59,14 @@ public class VideoImportService {
                     ? meta.path("categories").get(0).asText("").trim() : "";
             var tags = new ArrayList<String>();
             if (meta.path("tags").isArray()) meta.path("tags").forEach(tag -> {
-                if (tag.isTextual() && !tag.asText().isBlank()) tags.add(tag.asText().trim());
+                if (tag.isTextual()) {
+                    String normalizedTag = tag.asText().trim();
+                    if (!normalizedTag.isBlank() && normalizedTag.length() <= 50) {
+                        tags.add(normalizedTag);
+                    } else if (normalizedTag.length() > 50) {
+                        LOG.warn("Skipping oversized video tag in {}", file.getFileName());
+                    }
+                }
             });
             String stem = Long.toString(sourceId);
             if (!file.getFileName().toString().equals(stem + ".json")

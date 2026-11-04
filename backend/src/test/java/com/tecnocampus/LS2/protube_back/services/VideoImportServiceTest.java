@@ -64,6 +64,14 @@ class VideoImportServiceTest {
         verifyNoInteractions(repository);
     }
     @Test
+    void skipsTagsLongerThanDatabaseLimit() throws Exception {
+        complete(18, "{\"id\":18,\"title\":\"Title\",\"meta\":{\"tags\":[\"valid\","
+                + "\"this tag is intentionally longer than fifty characters and is skipped\"]}}");
+        importer.importVideos(store);
+        verify(repository).saveAndFlush(argThat(video ->
+                video.getTags().equals(java.util.List.of("valid"))));
+    }
+    @Test
     void concurrentDuplicateIsSafeButOtherDatabaseErrorsAreNotHidden() throws Exception {
         complete(0, "{\"id\":0,\"title\":\"Title\"}");
         when(repository.existsBySourceId(0L)).thenReturn(false, true);

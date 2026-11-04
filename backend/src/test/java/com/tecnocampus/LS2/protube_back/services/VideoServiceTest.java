@@ -26,7 +26,7 @@ class VideoServiceTest {
     @Test
     void returnsSummariesAndStablePageMetadata() {
         var repository = mock(VideoRepository.class);
-        var request = PageRequest.of(1, 12, Sort.by("id").ascending());
+        var request = PageRequest.of(1, 12, Sort.by("id").descending());
         when(repository.findAll(request)).thenReturn(new PageImpl<>(List.of(new Video("Title", "0.webp", "0.mp4", 0L)), request, 13));
         var result = service(repository).getVideos(1, 12);
         assertEquals("Title", result.content().get(0).title());

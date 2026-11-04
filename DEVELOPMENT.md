@@ -157,6 +157,27 @@ In development the backend and frontend run as two separate processes:
 Browser ──► Vite dev server (http://localhost:5173) ──fetch──► Spring Boot (http://localhost:8080/api, /media)
 ```
 
+### Docker Compose production mode
+
+With Docker Desktop installed, the complete application can be started without
+setting environment variables:
+
+```bash
+docker compose up
+```
+
+The bundled frontend and backend are available at
+`http://localhost:8080`. Compose defaults the PostgreSQL credentials to
+`protube` and uses `./store` for media; set `ENV_PROTUBE_STORE_DIR` only when
+using another store. PostgreSQL data and the media store survive container
+restarts. The backend and videoGrabber images include FFmpeg/FFprobe. To
+generate sample videos, run
+`docker compose run --rm videograbber` (the service is in the `tools` profile).
+The production profile imports valid numeric videoGrabber triples from the
+mounted store at startup. Existing files must include matching `<id>.json`,
+`<id>.webp` and `<id>.mp4` files; after generating or copying them, restart the
+backend with `docker compose restart backend`.
+
 ### Backend
 
 ```bash
@@ -294,7 +315,7 @@ Both development and production use the existing PostgreSQL configuration. Set E
 5. From frontend/, run npm run dev (npm.cmd on Windows when PowerShell blocks npm.ps1) and visit http://localhost:5173/. Confirm titles and thumbnails without signing in. With more than 12 valid imported videos, use Next and Previous and verify different entries and page boundaries.
 6. Register or log in, verify the catalog after returning home, then log out and verify browsing still works. Restart the backend and confirm imported entries remain without duplicates. Stop the backend to check the error/Retry state; an empty database with import disabled shows the empty state.
 
-GET /api/videos?page=0&size=12 returns content summaries (id, title, thumbnailPath) and page, size, totalElements, totalPages. Pages are zero-based, ordered by database ID; size is bounded to 1–100. Relative thumbnail paths resolve under /media/ through the existing Env.ts media domain.
+GET /api/videos?page=0&size=12 returns content summaries (id, title, thumbnailPath) and page, size, totalElements, totalPages. Pages are zero-based, ordered by database ID descending so newly uploaded videos appear first; size is bounded to 1–100. Relative thumbnail paths resolve under /media/ through the existing Env.ts media domain.
 
 Validation: backend mvn clean verify (Java 21; Docker required for PostgreSQL Testcontainers); frontend npm.cmd run test -- --watchAll=false --ci, npm.cmd run lint, npm.cmd run build. Reports: backend/target/site/jacoco/index.html and frontend/coverage/index.html.
 
