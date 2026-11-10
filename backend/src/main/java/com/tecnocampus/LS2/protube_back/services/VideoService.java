@@ -49,7 +49,7 @@ public class VideoService {
 
     @Transactional(readOnly = true)
     public VideoPageResponse getVideos(int page, int size) {
-        var result = videos.findAll(PageRequest.of(page, size, Sort.by("id").ascending()));
+        var result = videos.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
         var content = result.getContent().stream()
                 .map(video -> new VideoSummaryResponse(video.getId(), video.getTitle(), video.getThumbnailPath()))
                 .toList();

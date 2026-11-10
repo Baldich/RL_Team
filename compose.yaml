@@ -1,18 +1,77 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16
     container_name: postgres_db
     restart: always
     environment:
-      POSTGRES_USER: ${ENV_PROTUBE_DB_USER}
-      POSTGRES_PASSWORD: ${ENV_PROTUBE_DB_PASS}
-      POSTGRES_DB: ${ENV_PROTUBE_DB}
+      POSTGRES_USER: ${ENV_PROTUBE_DB_USER:-protube}
+      POSTGRES_PASSWORD: ${ENV_PROTUBE_DB_PASS:-protube}
+      POSTGRES_DB: ${ENV_PROTUBE_DB:-protube}
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Production mode: the image provides Java and Maven, while the prod profile
+  # builds and bundles the frontend into the backend.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: protube-backend
+    working_dir: /app/backend
+    command: ["mvn", "spring-boot:run", "-Pprod", "-f", "pom.xml"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENV_PROTUBE_STORE_DIR: /store/
+      ENV_PROTUBE_DB_HOST: db
+      ENV_PROTUBE_DB: ${ENV_PROTUBE_DB:-protube}
+      ENV_PROTUBE_DB_USER: ${ENV_PROTUBE_DB_USER:-protube}
+      ENV_PROTUBE_DB_PASS: ${ENV_PROTUBE_DB_PASS:-protube}
+      ENV_PROTUBE_GOOGLE_CLIENT_ID: ${ENV_PROTUBE_GOOGLE_CLIENT_ID:-}
+      ENV_PROTUBE_GOOGLE_CLIENT_SECRET: ${ENV_PROTUBE_GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - backend_target:/app/backend/target
+      - frontend_node_modules:/app/frontend/node_modules
+      - maven_repo:/root/.m2
+      - type: bind
+        source: ${ENV_PROTUBE_STORE_DIR:-./store}
+        target: /store
+
+  # One-shot tool, not started by `docker compose up` (profile "tools").
+  # Run with: docker compose run --rm videograbber
+  videograbber:
+    build: ./tooling/videoGrabber
+    image: protube-videograbber
+    profiles: ["tools"]
+    command:
+      - --store=/store
+      - --id=${ENV_PROTUBE_GROUP_ID:-10}
+      - --recreate
+      - --videos=/videos/video_list.txt
+    volumes:
+      - type: bind
+        source: ${ENV_PROTUBE_STORE_DIR:-./store}
+        target: /store
+      - type: bind
+        source: ./resources
+        target: /videos
+        read_only: true
+
 volumes:
   postgres_data:
+  backend_target:
+  frontend_node_modules:
+  maven_repo:

@@ -8,7 +8,7 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class IndexController {
 
-    @GetMapping({"", "/upload", "/register", "/login", "/videos/{id}", "/profile", "/users/{id}"})
+    @GetMapping({"/", "", "/upload", "/register", "/login", "/videos/{id}", "/profile", "/users/{id}"})
     public ModelAndView home() {
         return new ModelAndView("index");
     }
