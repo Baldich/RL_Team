@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getEnv } from './utils/Env';
 import type { VideoPage } from './types/video';
 
-export function useAllVideos(page = 0) {
+export function useAllVideos(page = 0, query = '') {
   const [value, setValue] = useState<VideoPage | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState<'loading' | 'success' | 'error' | 'idle'>('loading');
@@ -16,7 +16,7 @@ export function useAllVideos(page = 0) {
     setMessage('');
     axios
       .get<VideoPage>(getEnv().API_BASE_URL + '/videos', {
-        params: { page, size: 12 },
+        params: query.trim() ? { page, size: 12, q: query.trim() } : { page, size: 12 },
         signal: controller.signal,
       })
       .then((response) => {
@@ -35,7 +35,7 @@ export function useAllVideos(page = 0) {
       active = false;
       controller.abort();
     };
-  }, [page, attempt]);
+  }, [page, query, attempt]);
 
   return { value, message, loading, retry: () => setAttempt((current) => current + 1) };
 }

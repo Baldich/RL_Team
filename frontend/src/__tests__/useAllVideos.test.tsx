@@ -28,6 +28,16 @@ describe('useAllVideos', () => {
     );
   });
 
+  it('sends a trimmed search query', async () => {
+    get.mockResolvedValue({ data: page });
+    const { result } = renderHook(() => useAllVideos(0, ' physics '));
+    await waitFor(() => expect(result.current.loading).toBe('success'));
+    expect(get).toHaveBeenCalledWith(
+      'other/videos',
+      expect.objectContaining({ params: { page: 0, size: 12, q: 'physics' } })
+    );
+  });
+
   it('shows errors and retries the same page', async () => {
     get.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: { ...page, content: [] } });
     const { result } = renderHook(() => useAllVideos(1));

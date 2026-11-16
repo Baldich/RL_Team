@@ -30,11 +30,17 @@ public class VideosController {
 
     @GetMapping
     public VideoPageResponse getVideos(@RequestParam(defaultValue = "0") int page,
-                                       @RequestParam(defaultValue = "12") int size) {
+                                       @RequestParam(defaultValue = "12") int size,
+                                       @RequestParam(defaultValue = "") String q) {
         if (page < 0 || size < 1 || size > 100) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page must be nonnegative and size between 1 and 100.");
         }
-        return videos.getVideos(page, size);
+        if (q != null && q.length() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search query must contain at most 200 characters.");
+        }
+        return q == null || q.isBlank()
+                ? videos.getVideos(page, size)
+                : videos.getVideos(q, page, size);
     }
 
     @GetMapping("/{id}")
