@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from '../../App';
-import { getSession, register } from '../../auth';
+import { getSession, logout, register } from '../../auth';
 import { useAllVideos } from '../../useAllVideos';
 import { useVideoDetails } from '../../useVideoDetails';
 
@@ -80,7 +80,17 @@ describe('App', () => {
         description: 'A sample video',
         videoPath: '0.mp4',
         thumbnailPath: '0.webp',
-        comments: [{ author: 'viewer', text: 'Nice!', timestamp: 123, likeCount: 2 }],
+        comments: [
+          {
+            id: 'imported-0',
+            author: 'viewer',
+            text: 'Nice!',
+            timestamp: 123,
+            likeCount: 2,
+            likedByCurrentUser: false,
+            replies: [],
+          },
+        ],
       },
       retry: jest.fn(),
     });
@@ -103,6 +113,42 @@ describe('App', () => {
     });
     render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Video not found');
+  });
+
+  it('clears private reply drafts when logging out on a video page', async () => {
+    window.history.replaceState({}, '', '/videos/1');
+    mockSession.mockResolvedValue({ id: 7, email: 'viewer@example.com' });
+    jest.mocked(logout).mockResolvedValue();
+    mockVideoDetails.mockReturnValue({
+      status: 'success',
+      message: '',
+      value: {
+        id: 1,
+        title: 'Video',
+        description: '',
+        videoPath: '77.mp4',
+        thumbnailPath: '77.webp',
+        comments: [
+          {
+            id: 'imported-0',
+            author: 'Alice',
+            text: 'Original',
+            timestamp: 1,
+            likeCount: 4,
+            likedByCurrentUser: false,
+            replies: [],
+          },
+        ],
+      },
+      retry: jest.fn(),
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Reply' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Reply to Alice' }), { target: { value: 'Private draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    await screen.findByRole('button', { name: 'Log in to comment' });
+    expect(screen.queryByRole('form', { name: 'Reply to Alice' })).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Private draft')).not.toBeInTheDocument();
   });
 
   it('keeps registration available if the session lookup fails', async () => {

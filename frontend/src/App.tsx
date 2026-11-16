@@ -151,6 +151,7 @@ function App() {
           </section>
         ) : isDetailRoute && validDetailId ? (
           <VideoDetailPage
+            key={`${validDetailId}:${user?.id ?? 'visitor'}`}
             videoId={validDetailId}
             onBack={() => navigate('/')}
             user={user}

@@ -5,10 +5,18 @@ export interface VideoSummary {
 }
 
 export interface VideoComment {
+  id: string;
   author: string;
   text: string;
   timestamp: number;
   likeCount: number;
+  likedByCurrentUser: boolean;
+  replies: VideoComment[];
+}
+
+export interface CommentLikeState {
+  likeCount: number;
+  likedByCurrentUser: boolean;
 }
 
 export interface VideoPage {

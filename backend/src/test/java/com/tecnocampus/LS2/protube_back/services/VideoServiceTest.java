@@ -84,20 +84,14 @@ class VideoServiceTest {
     @Test
     void storesCommentForAuthenticatedUser() throws Exception {
         var repository = mock(VideoRepository.class);
-        var userRepository = mock(com.tecnocampus.LS2.protube_back.repository.UserRepository.class);
-        var commentRepository = mock(com.tecnocampus.LS2.protube_back.repository.CommentRepository.class);
-        var video = new Video("Title", "1.webp", "1.mp4", 77L);
-        when(repository.findById(1L)).thenReturn(Optional.of(video));
-        when(userRepository.findById(10L)).thenReturn(Optional.of(new com.tecnocampus.LS2.protube_back.domain.User("viewer@example.com", "hash")));
-        when(commentRepository.save(any(com.tecnocampus.LS2.protube_back.domain.Comment.class)))
-                .thenAnswer(invocation -> {
-                    var comment = invocation.getArgument(0, com.tecnocampus.LS2.protube_back.domain.Comment.class);
-                    return new com.tecnocampus.LS2.protube_back.domain.Comment(comment.getVideo(), comment.getAuthor(), comment.getText(), comment.getCreatedAt(), comment.getLikeCount());
-                });
-        var result = new VideoService(repository, commentRepository, userRepository, new ObjectMapper(), store.toString())
+        var discussions = mock(CommentService.class);
+        when(discussions.addComment(1L, 10L, " Great! ")).thenReturn(
+                new com.tecnocampus.LS2.protube_back.dto.VideoCommentResponse("viewer@example.com", "Great!", 123L, 0));
+        var result = new VideoService(repository, discussions, new ObjectMapper(), store.toString())
                 .addComment(1L, 10L, " Great! ");
         assertEquals("Great!", result.text());
         assertEquals("viewer@example.com", result.author());
+        verify(discussions).addComment(1L, 10L, " Great! ");
     }
 
     @Test
@@ -137,6 +131,9 @@ class VideoServiceTest {
     private VideoService service(VideoRepository repository) {
         var userRepository = mock(com.tecnocampus.LS2.protube_back.repository.UserRepository.class);
         var commentRepository = mock(com.tecnocampus.LS2.protube_back.repository.CommentRepository.class);
-        return new VideoService(repository, commentRepository, userRepository, new ObjectMapper(), store.toString());
+        var likes = mock(com.tecnocampus.LS2.protube_back.repository.CommentLikeRepository.class);
+        var discussions = new CommentService(repository, commentRepository, userRepository, likes,
+                new ObjectMapper(), store.toString());
+        return new VideoService(repository, discussions, new ObjectMapper(), store.toString());
     }
 }

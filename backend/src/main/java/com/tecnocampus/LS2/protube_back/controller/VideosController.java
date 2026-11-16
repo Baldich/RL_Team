@@ -8,10 +8,10 @@ import com.tecnocampus.LS2.protube_back.dto.VideoDetailResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoMetadataResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoPageResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest;
-import com.tecnocampus.LS2.protube_back.dto.RegistrationResponse;
 import com.tecnocampus.LS2.protube_back.services.VideoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,8 +38,10 @@ public class VideosController {
     }
 
     @GetMapping("/{id}")
-    public VideoDetailResponse getVideo(@PathVariable long id) {
-        return videos.getVideoDetails(id);
+    public ResponseEntity<VideoDetailResponse> getVideo(@PathVariable long id,
+            @AuthenticationPrincipal RegistrationResponse user) {
+        var detail = user == null ? videos.getVideoDetails(id) : videos.getVideoDetails(id, user.id());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(detail);
     }
 
     @PutMapping("/{id}")
