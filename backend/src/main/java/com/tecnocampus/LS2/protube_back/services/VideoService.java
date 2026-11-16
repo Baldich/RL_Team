@@ -2,8 +2,6 @@ package com.tecnocampus.LS2.protube_back.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tecnocampus.LS2.protube_back.domain.Comment;
-import com.tecnocampus.LS2.protube_back.domain.User;
 import com.tecnocampus.LS2.protube_back.domain.Video;
 import com.tecnocampus.LS2.protube_back.dto.VideoCommentResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoDetailResponse;
@@ -11,8 +9,6 @@ import com.tecnocampus.LS2.protube_back.dto.VideoMetadataResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoPageResponse;
 import com.tecnocampus.LS2.protube_back.dto.VideoUpdateRequest;
 import com.tecnocampus.LS2.protube_back.dto.VideoSummaryResponse;
-import com.tecnocampus.LS2.protube_back.repository.CommentRepository;
-import com.tecnocampus.LS2.protube_back.repository.UserRepository;
 import com.tecnocampus.LS2.protube_back.repository.VideoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -26,23 +22,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 @Service
 public class VideoService {
     private final VideoRepository videos;
-    private final CommentRepository comments;
-    private final UserRepository users;
+    private final CommentService comments;
     private final ObjectMapper mapper;
     private final Path storeDir;
 
-    public VideoService(VideoRepository videos, CommentRepository comments, UserRepository users,
+    public VideoService(VideoRepository videos, CommentService comments,
                         ObjectMapper mapper, @Value("${pro_tube.store.dir}") String storeDir) {
         this.videos = videos;
         this.comments = comments;
-        this.users = users;
         this.mapper = mapper;
         this.storeDir = Paths.get(storeDir);
     }
@@ -58,6 +49,11 @@ public class VideoService {
 
     @Transactional(readOnly = true)
     public VideoDetailResponse getVideoDetails(long id) {
+        return getVideoDetails(id, null);
+    }
+
+    @Transactional(readOnly = true)
+    public VideoDetailResponse getVideoDetails(long id, Long viewerId) {
         Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
         Path metadataFile = storeDir.resolve(video.getSourceId() + ".json");
         Path videoFile = storeDir.resolve(video.getVideoPath());
@@ -71,15 +67,7 @@ public class VideoService {
             String description = video.hasPersistedDescription()
                     ? video.getDescription()
                     : metadata.path("meta").path("description").asText("");
-            List<VideoCommentResponse> detailComments = new ArrayList<>(readComments(metadata.path("meta").path("comments")));
-            detailComments.addAll(comments.findByVideoIdOrderByCreatedAtAsc(id).stream()
-                    .map(comment -> new VideoCommentResponse(
-                            comment.getAuthor().getEmail(),
-                            comment.getText(),
-                            comment.getCreatedAt(),
-                            comment.getLikeCount()))
-                    .toList());
-            detailComments.sort(Comparator.comparingLong(VideoCommentResponse::timestamp));
+            var detailComments = comments.getComments(id, metadata.path("meta").path("comments"), viewerId);
             return new VideoDetailResponse(
                     video.getId(),
                     video.getTitle(),
@@ -113,33 +101,11 @@ public class VideoService {
 
     @Transactional
     public VideoCommentResponse addComment(long videoId, long userId, String text) {
-        Video video = videos.findById(videoId).orElseThrow(() -> new VideoNotFoundException(videoId));
-        User author = users.findById(userId).orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
-        String cleanText = text == null ? "" : text.trim();
-        if (cleanText.isBlank()) {
-            throw new IllegalArgumentException("Comment cannot be empty.");
-        }
-        long timestamp = System.currentTimeMillis() / 1000L;
-        Comment comment = comments.save(new Comment(video, author, cleanText, timestamp, 0));
-        return new VideoCommentResponse(author.getEmail(), comment.getText(), comment.getCreatedAt(), comment.getLikeCount());
+        return comments.addComment(videoId, userId, text);
     }
 
     private static boolean isReadableFile(Path path) {
         return Files.isRegularFile(path) && Files.isReadable(path);
     }
 
-    private static List<VideoCommentResponse> readComments(JsonNode commentsNode) {
-        if (commentsNode == null || !commentsNode.isArray()) {
-            return List.of();
-        }
-        List<VideoCommentResponse> comments = new ArrayList<>();
-        for (JsonNode comment : commentsNode) {
-            comments.add(new VideoCommentResponse(
-                    comment.path("author").asText(""),
-                    comment.path("text").asText(""),
-                    comment.path("timestamp").asLong(0L),
-                    comment.path("like_count").asInt(0)));
-        }
-        return List.copyOf(comments);
-    }
 }

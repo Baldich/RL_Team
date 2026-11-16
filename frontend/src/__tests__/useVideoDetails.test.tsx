@@ -24,7 +24,10 @@ describe('useVideoDetails', () => {
     expect(result.current.status).toBe('loading');
     await waitFor(() => expect(result.current.status).toBe('success'));
     expect(result.current.value).toEqual(details);
-    expect(get).toHaveBeenCalledWith('other/videos/1', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(get).toHaveBeenCalledWith(
+      'other/videos/1',
+      expect.objectContaining({ signal: expect.any(AbortSignal), withCredentials: true })
+    );
   });
 
   it('marks missing videos as not found', async () => {

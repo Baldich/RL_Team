@@ -23,7 +23,10 @@ export function useVideoDetails(videoId: number | null) {
     setStatus('loading');
     setMessage('');
     axios
-      .get<VideoDetails>(`${getEnv().API_BASE_URL}/videos/${videoId}`, { signal: controller.signal })
+      .get<VideoDetails>(`${getEnv().API_BASE_URL}/videos/${videoId}`, {
+        signal: controller.signal,
+        withCredentials: true,
+      })
       .then((response) => {
         if (active) {
           setValue(response.data);

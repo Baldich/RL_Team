@@ -26,14 +26,23 @@ public class Comment {
     @Column(nullable = false)
     private int likeCount;
 
+    // References can point to either a local row or a read-only videoGrabber comment.
+    @Column(name = "parent_comment_key", length = 80)
+    private String parentCommentKey;
+
     protected Comment() {}
 
     public Comment(Video video, User author, String text, long createdAt, int likeCount) {
+        this(video, author, text, createdAt, likeCount, null);
+    }
+
+    public Comment(Video video, User author, String text, long createdAt, int likeCount, String parentCommentKey) {
         this.video = video;
         this.author = author;
         this.text = text;
         this.createdAt = createdAt;
         this.likeCount = likeCount;
+        this.parentCommentKey = parentCommentKey;
     }
 
     public Long getId() { return id; }
@@ -42,4 +51,5 @@ public class Comment {
     public String getText() { return text; }
     public long getCreatedAt() { return createdAt; }
     public int getLikeCount() { return likeCount; }
+    public String getParentCommentKey() { return parentCommentKey; }
 }

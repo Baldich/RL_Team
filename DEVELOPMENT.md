@@ -1,5 +1,64 @@
 # Development guide
 
+## US-10: replies and comment likes
+
+The video detail page supports nested replies and like/unlike for both local
+comments and comments supplied by videoGrabber. Visitors can read discussions;
+interaction prompts them to log in. Successful discussion updates keep the
+existing video player mounted. Forms prevent duplicate submissions and retain
+drafts after a failed request.
+
+### API and persistence
+
+- `POST /api/videos/{videoId}/comments/{commentId}/replies` accepts
+  `{ "text": "A reply" }` and returns the created comment with HTTP 201.
+- `PUT /api/videos/{videoId}/comments/{commentId}/like` adds the current user's
+  like. `DELETE` on the same URL removes it. Both return
+  `{ "likeCount": 5, "likedByCurrentUser": true }` with the resulting state.
+  Repeated PUT/DELETE requests are idempotent. A PostgreSQL unique constraint
+  and `ON CONFLICT DO NOTHING` prevent concurrent duplicate likes.
+- All writes require the session cookie and the current `X-CSRF-TOKEN`.
+  The server resolves the user from the session and checks the comment belongs
+  to the requested video. Missing targets return 404; blank text, text longer
+  than 5000 characters, and replies beyond eight reply levels return 400.
+- Detail responses now include each comment's `id`, `likedByCurrentUser` and
+  recursively nested `replies`, alongside the existing author/text/time/count.
+  Detail GETs send credentials and use `Cache-Control: no-store` because the
+  like state belongs to the current session. Counts remain public.
+- Comment IDs are opaque, video-scoped references: `local-<database-id>` or
+  `imported-<original-zero-based-JSON-array-index>`. Imported comment identity
+  follows its position in the original immutable sidecar, even though the UI
+  sorts discussions by timestamp. Keep the source JSON unchanged; replacing or
+  reordering an existing dataset requires an explicit data migration, as with
+  the existing video source IDs. US-10 never rewrites source files.
+- JPA schema update adds nullable `video_comments.parent_comment_key` and a new
+  `comment_likes` table. Existing comments remain root comments. Replies and
+  user likes are persisted in PostgreSQL; existing historical like counts
+  remain a baseline, and unliking cannot remove another user's or source likes.
+  Since imported comments live outside PostgreSQL, their target references are
+  validated in the service; database foreign keys protect the video and user.
+
+### Manual checks
+
+1. Start the application with the existing PostgreSQL database and store, open
+   an imported video, and confirm that the original discussion is still shown.
+2. As a visitor, click Like or Reply and confirm the login flow opens.
+3. Sign in, reply to an imported comment, and reply to that reply. Check nested
+   placement, then reload and confirm persistence. Repeat on a local comment.
+4. Like and unlike both a root comment and a reply. Reload and confirm the
+   count/state. Use a second account to verify independent likes.
+5. While the video plays, post a reply and change a like; playback must continue.
+   Simulate an offline request and confirm an error appears without losing the
+   draft or changing the count. Log out and confirm private drafts disappear.
+
+Automated checks cover PostgreSQL persistence, concurrent duplicate likes,
+legacy and imported comments, target scoping, session/CSRF/CORS, UI nesting,
+pending/error states, session changes, and keeping the player mounted. Frontend
+tests mock API calls. Run `mvn clean verify`, frontend Jest with coverage,
+`npm run lint`, `npm run build`, and
+`node node_modules/typescript/bin/tsc --project tsconfig.app.json --noEmit`.
+Prompt traceability: `prompts/us-10-comment-replies-likes.prompt.md`.
+
 ## US-06: authenticated video uploads
 
 The backend host must provide **FFmpeg and FFprobe** on PATH, including the
@@ -237,7 +296,7 @@ The current gates require frontend coverage of at least 75% for branches, functi
 
 ### CI
 
-`.github/workflows/main.yml` runs on every PR and push to `main`:
+`.github/workflows/main.yml` runs on PRs targeting `main` or `develop`, and pushes to `main`:
 
 1. Frontend: `npm ci` → `npm run build` → `npm run test` → `npm run lint`
 2. Backend: `./mvnw clean verify -Pcoverage`

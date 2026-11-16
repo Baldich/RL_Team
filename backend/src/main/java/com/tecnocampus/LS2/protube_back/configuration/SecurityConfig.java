@@ -46,6 +46,9 @@ public class SecurityConfig {
                 .securityContext(context -> context.securityContextRepository(contexts))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/videos", "/api/videos/*/comments").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/videos/*/comments/*/replies").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/videos/*/comments/*/like").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/videos/*/comments/*/like").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/videos/*").authenticated()
                         .requestMatchers("/api/profile").authenticated()
                         .anyRequest().permitAll())
@@ -63,7 +66,7 @@ public class SecurityConfig {
             @Value("${pro_tube.frontend.origin}") String frontendOrigin) {
         CorsConfiguration cors = new CorsConfiguration();
         cors.setAllowedOrigins(List.of(frontendOrigin));
-        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN"));
         cors.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
