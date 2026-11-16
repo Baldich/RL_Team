@@ -64,3 +64,11 @@ result is asserted. Preserve this prompt alongside the implementation in its PR.
   before the final successful clean verification.
 - Manual browser playback, remote CI and human PR review have not been run.
   No commit, push or merge was performed.
+
+## Delivery follow-up — PR into develop
+
+The user is publishing US-10 through a feature-branch PR targeting develop.
+Enable the existing CI workflow for pull requests targeting develop as well as
+main, preserving the existing push trigger and all build/test/coverage steps.
+Update the development guide to match. Validate the workflow branch filters and
+diff formatting; remote CI results remain pending until the PR runs.

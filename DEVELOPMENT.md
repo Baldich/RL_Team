@@ -296,7 +296,7 @@ The current gates require frontend coverage of at least 75% for branches, functi
 
 ### CI
 
-`.github/workflows/main.yml` runs on every PR and push to `main`:
+`.github/workflows/main.yml` runs on PRs targeting `main` or `develop`, and pushes to `main`:
 
 1. Frontend: `npm ci` → `npm run build` → `npm run test` → `npm run lint`
 2. Backend: `./mvnw clean verify -Pcoverage`
