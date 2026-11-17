@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> {
     List<CommentLike> findByVideoId(Long videoId);
+    long countByVideoId(Long videoId);
     long countByVideoIdAndCommentKey(long videoId, String commentKey);
     boolean existsByVideoIdAndCommentKeyAndUser_Id(long videoId, String commentKey, long userId);
 

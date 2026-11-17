@@ -55,13 +55,14 @@ public class VideoService {
         return new VideoPageResponse(content, page, size, result.getTotalElements(), result.getTotalPages());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public VideoDetailResponse getVideoDetails(long id) {
         return getVideoDetails(id, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public VideoDetailResponse getVideoDetails(long id, Long viewerId) {
+        videos.incrementViewCount(id);
         Video video = videos.findById(id).orElseThrow(() -> new VideoNotFoundException(id));
         Path metadataFile = storeDir.resolve(video.getSourceId() + ".json");
         Path videoFile = storeDir.resolve(video.getVideoPath());

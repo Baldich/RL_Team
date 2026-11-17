@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/videos/*/comments/*/like").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/videos/*/comments/*/like").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/videos/*").authenticated()
+                        .requestMatchers("/api/analytics").authenticated()
                         .requestMatchers("/api/profile").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(

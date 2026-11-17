@@ -10,6 +10,7 @@ import VideoGrid from './components/VideoGrid';
 import VideoDetailPage from './components/VideoDetailPage';
 import ProfilePage from './components/ProfilePage';
 import UploadVideoPage from './components/UploadVideoPage';
+import AnalyticsPage from './components/AnalyticsPage';
 
 function App() {
   const [user, setUser] = useState<RegisteredUser | null>(null);
@@ -42,7 +43,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (path === '/upload' && !sessionLoading && !user) {
+    if ((path === '/upload' || path === '/analytics') && !sessionLoading && !user) {
       window.history.replaceState({}, '', '/login');
       setPath('/login');
     }
@@ -82,6 +83,15 @@ function App() {
             >
               My profile
             </a>
+            <a
+              href="/analytics"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate('/analytics');
+              }}
+            >
+              My analytics
+            </a>
             <button type="button" onClick={() => logout().then(() => setUser(null))}>
               Log out
             </button>
@@ -110,6 +120,12 @@ function App() {
         )}
         {sessionLoading ? (
           <p role="status">Checking session...</p>
+        ) : path === '/analytics' ? (
+          user ? (
+            <AnalyticsPage onOpenVideo={(id) => navigate(`/videos/${id}`)} onBack={() => navigate('/')} />
+          ) : (
+            <p role="status">Redirecting to login...</p>
+          )
         ) : path === '/upload' ? (
           user ? (
             <UploadVideoPage

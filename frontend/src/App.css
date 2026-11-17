@@ -175,3 +175,37 @@
   box-sizing: border-box;
   max-width: 100%;
 }
+
+.analytics-page {
+  width: min(900px, 100%);
+  padding: 1.5rem;
+  font-size: 1rem;
+}
+
+.analytics-summary {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.analytics-summary div {
+  min-width: 7rem;
+}
+
+.analytics-summary dd {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.analytics-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-page th,
+.analytics-page td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #697589;
+  text-align: left;
+}
