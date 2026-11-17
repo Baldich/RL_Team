@@ -50,7 +50,7 @@ describe('App', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Signed in as visitor@example.com');
     expect(window.location.pathname).toBe('/');
     expect(screen.getByRole('listitem')).toHaveTextContent('video1');
-    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Registration' })).not.toBeInTheDocument();
   });
 
   it('restores the authenticated state on page load', async () => {

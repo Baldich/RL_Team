@@ -38,7 +38,7 @@ describe('Catalog', () => {
     expect(screen.getByRole('heading', { name: 'Next video' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'First' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    expect(videos).toHaveBeenLastCalledWith(1);
+    expect(videos).toHaveBeenLastCalledWith(1, '');
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
     expect(screen.getByRole('heading', { name: 'First' })).toBeInTheDocument();
   });
@@ -50,6 +50,29 @@ describe('Catalog', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading...');
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+  });
+
+  it('searches videos and shows an empty search state', async () => {
+    videos.mockImplementation((_page = 0, query = '') => ({
+      loading: 'success',
+      message: '',
+      retry,
+      value: {
+        content: query ? [] : content,
+        page: 0,
+        size: 12,
+        totalElements: query ? 0 : 1,
+        totalPages: query ? 0 : 1,
+      },
+    }));
+    render(<App />);
+    await screen.findByRole('link', { name: 'First' });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search videos' }), {
+      target: { value: 'missing' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(await screen.findByText('No videos found for "missing".')).toBeInTheDocument();
+    expect(videos).toHaveBeenLastCalledWith(0, 'missing');
   });
 
   it('shows an empty catalog without an error', async () => {

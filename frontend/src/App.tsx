@@ -1,6 +1,7 @@
 import './App.css';
 import { useAllVideos } from './useAllVideos';
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { getSession, logout } from './auth';
 import type { RegisteredUser } from './auth';
 import RegistrationForm from './components/RegistrationForm';
@@ -175,11 +176,27 @@ function App() {
 
 function ContentApp({ onOpenVideo }: { onOpenVideo: (videoId: number) => void }) {
   const [page, setPage] = useState(0);
-  const { loading, message, value, retry } = useAllVideos(page);
+  const [query, setQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const { loading, message, value, retry } = useAllVideos(page, submittedQuery);
   const pending = loading === 'loading' || loading === 'idle';
+
+  function search(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPage(0);
+    setSubmittedQuery(query.trim());
+  }
+
   return (
     <section className="catalog" aria-labelledby="catalog-title">
       <h1 id="catalog-title">Available videos</h1>
+      <form className="video-search" aria-label="Search videos" onSubmit={search}>
+        <label htmlFor="video-search-query">Search videos</label>
+        <input id="video-search-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <button type="submit" disabled={pending}>
+          Search
+        </button>
+      </form>
       {pending ? (
         <p role="status">Loading...</p>
       ) : loading === 'error' ? (
@@ -193,7 +210,7 @@ function ContentApp({ onOpenVideo }: { onOpenVideo: (videoId: number) => void })
       ) : value && value.content.length > 0 ? (
         <VideoGrid videos={value.content} onOpenVideo={onOpenVideo} />
       ) : (
-        <p>No videos available.</p>
+        <p>{submittedQuery ? `No videos found for "${submittedQuery}".` : 'No videos available.'}</p>
       )}
       <nav aria-label="Video pagination">
         <button type="button" disabled={pending || page === 0} onClick={() => setPage((current) => current - 1)}>

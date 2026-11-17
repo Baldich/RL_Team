@@ -40,7 +40,15 @@ public class VideoService {
 
     @Transactional(readOnly = true)
     public VideoPageResponse getVideos(int page, int size) {
-        var result = videos.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
+        return getVideos("", page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public VideoPageResponse getVideos(String query, int page, int size) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        var result = normalizedQuery.isBlank()
+                ? videos.findAll(PageRequest.of(page, size, Sort.by("id").descending()))
+                : videos.search(normalizedQuery, PageRequest.of(page, size));
         var content = result.getContent().stream()
                 .map(video -> new VideoSummaryResponse(video.getId(), video.getTitle(), video.getThumbnailPath()))
                 .toList();

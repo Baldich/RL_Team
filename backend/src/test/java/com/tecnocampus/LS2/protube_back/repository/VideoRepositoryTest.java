@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,5 +43,22 @@ class VideoRepositoryTest extends PostgresTestSupport {
         videos.saveAndFlush(new Video("First", "0.webp", "0.mp4", 0L));
         assertThrows(DataIntegrityViolationException.class,
                 () -> videos.saveAndFlush(new Video("Duplicate", "0.webp", "0.mp4", 0L)));
+    }
+
+    @Test
+    void searchesTitleAndDescriptionByRelevance() {
+        videos.save(new Video("Physics basics", "1.webp", "1.mp4", 1L, null,
+                "Introduction to motion", "", List.of()));
+        videos.save(new Video("Cooking", "2.webp", "2.mp4", 2L, null,
+                "Physics in the kitchen", "", List.of()));
+        videos.save(new Video("Gardening", "3.webp", "3.mp4", 3L, null,
+                "Growing tomatoes", "", List.of()));
+        videos.flush();
+
+        var result = videos.search("physics", PageRequest.of(0, 10));
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals("Physics basics", result.getContent().get(0).getTitle());
+        assertEquals("Cooking", result.getContent().get(1).getTitle());
     }
 }

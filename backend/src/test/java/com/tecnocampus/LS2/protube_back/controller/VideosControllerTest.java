@@ -50,6 +50,17 @@ class VideosControllerTest {
     }
 
     @Test
+    void forwardsSearchQueriesAndRejectsOversizedQueries() throws Exception {
+        when(videos.getVideos("physics", 0, 12))
+                .thenReturn(new VideoPageResponse(List.of(), 0, 12, 0, 0));
+        mvc.perform(get("/api/videos?q=physics"))
+                .andExpect(status().isOk());
+        verify(videos).getVideos("physics", 0, 12);
+        mvc.perform(get("/api/videos?q=" + "x".repeat(201)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void returnsVideoDetails() throws Exception {
         when(videos.getVideoDetails(1L)).thenReturn(new VideoDetailResponse(1L, "Title", "Description", "1.mp4", "1.webp",
                 List.of(new VideoCommentResponse("viewer", "Nice!", 123L, 4))));
