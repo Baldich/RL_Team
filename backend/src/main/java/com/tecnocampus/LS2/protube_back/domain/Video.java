@@ -15,6 +15,8 @@ public class Video {
     private String thumbnailPath;
     @Column(nullable = false)
     private String videoPath;
+    @Column(nullable = false, columnDefinition = "bigint not null default 0")
+    private long viewCount;
     @Column(name = "source_id")
     private Long sourceId;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -51,6 +53,7 @@ public class Video {
     public Long getSourceId() { return sourceId; }
     public User getOwner() { return owner; }
     public Long getOwnerId() { return owner == null ? null : owner.getId(); }
+    public long getViewCount() { return viewCount; }
     public String getDescription() { return description == null ? "" : description; }
     public boolean hasPersistedDescription() { return description != null; }
     public String getCategory() { return category == null ? "" : category; }

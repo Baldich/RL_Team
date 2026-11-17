@@ -9,4 +9,5 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     @EntityGraph(attributePaths = "author")
     List<Comment> findByVideoIdOrderByCreatedAtAscIdAsc(Long videoId);
+    long countByVideoId(Long videoId);
 }

@@ -6,9 +6,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 public interface VideoRepository extends JpaRepository<Video, Long> {
     boolean existsBySourceId(Long sourceId);
+    List<Video> findByOwner_IdOrderByIdDesc(Long ownerId);
+
+    @Modifying
+    @Transactional
+    @Query("update Video v set v.viewCount = v.viewCount + 1 where v.id = :videoId")
+    int incrementViewCount(@Param("videoId") long videoId);
 
     @Query(value = """
             select v.*
