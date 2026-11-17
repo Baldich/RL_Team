@@ -61,63 +61,80 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src="/protube-logo-removebg-preview.png" className="App-logo" alt="logo" />
-        {user ? (
-          <>
-            <p role="status">Signed in as {user.email}</p>
-            <a
-              href="/upload"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/upload');
-              }}
-            >
-              Upload Video
-            </a>
-            <a
-              href="/profile"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/profile');
-              }}
-            >
-              My profile
-            </a>
-            <a
-              href="/analytics"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/analytics');
-              }}
-            >
-              My analytics
-            </a>
-            <button type="button" onClick={() => logout().then(() => setUser(null))}>
-              Log out
-            </button>
-          </>
-        ) : (
-          <>
-            <a
-              href="/login"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/login');
-              }}
-            >
-              Log in
-            </a>
-            <a
-              href="/register"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/register');
-              }}
-            >
-              Register
-            </a>
-          </>
-        )}
+        <a
+          className="brand"
+          href="/"
+          aria-label="ProTube home"
+          onClick={(event) => {
+            event.preventDefault();
+            navigate('/');
+          }}
+        >
+          <span className="brand-icon" aria-hidden="true">
+            &#9654;
+          </span>
+          <span>ProTube</span>
+        </a>
+        <nav className="user-navigation" aria-label="User navigation">
+          {user ? (
+            <>
+              <p role="status">Signed in as {user.email}</p>
+              <a
+                href="/upload"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/upload');
+                }}
+              >
+                Upload Video
+              </a>
+              <a
+                href="/profile"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/profile');
+                }}
+              >
+                My profile
+              </a>
+              <a
+                href="/analytics"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/analytics');
+                }}
+              >
+                My analytics
+              </a>
+              <button type="button" onClick={() => logout().then(() => setUser(null))}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <a
+                href="/login"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/login');
+                }}
+              >
+                Log in
+              </a>
+              <a
+                href="/register"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/register');
+                }}
+              >
+                Register
+              </a>
+            </>
+          )}
+        </nav>
+      </header>
+      <main className="App-content">
         {sessionLoading ? (
           <p role="status">Checking session...</p>
         ) : path === '/analytics' ? (
@@ -185,7 +202,7 @@ function App() {
         ) : (
           <ContentApp onOpenVideo={(videoId) => navigate(`/videos/${videoId}`)} />
         )}
-      </header>
+      </main>
     </div>
   );
 }
@@ -205,10 +222,20 @@ function ContentApp({ onOpenVideo }: { onOpenVideo: (videoId: number) => void })
 
   return (
     <section className="catalog" aria-labelledby="catalog-title">
-      <h1 id="catalog-title">Available videos</h1>
+      <div className="catalog-heading">
+        <p className="eyebrow">Explore ProTube</p>
+        <h1 id="catalog-title">Available videos</h1>
+        <p>Find your next favorite video.</p>
+      </div>
       <form className="video-search" aria-label="Search videos" onSubmit={search}>
         <label htmlFor="video-search-query">Search videos</label>
-        <input id="video-search-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <input
+          id="video-search-query"
+          type="search"
+          placeholder="Search videos..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
         <button type="submit" disabled={pending}>
           Search
         </button>
